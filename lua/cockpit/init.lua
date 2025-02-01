@@ -1,28 +1,37 @@
--- First, require the utility functions provided by nvim-treesitter
+local ts = require("cockpit.treesitter.treesitter")
+local utils = require("cockpit.utils")
 local ts_utils = require("nvim-treesitter.ts_utils")
 
--- Get the node at the current cursor position.
-local node = ts_utils.get_node_at_cursor()
+local M = {}
 
--- Traverse up the tree until we find a function node.
-while node do
-  local node_type = node:type()
-  -- Depending on your language, you might need to check for different types,
-  -- e.g., "function_declaration", "method_definition", or even "arrow_function".
-  if node_type == "function_declaration" or node_type == "method_definition" then
-    -- Optionally, use the Tree-sitter field API if available to get the function's name.
-    local name_field = node:field("name")
-    if name_field and name_field[1] then
-      local func_name = ts_utils.get_node_text(name_field[1])[1]
-      print("Current function: " .. func_name)
-    else
-      print("Inside an anonymous function or one without a 'name' field")
+function M.cockpit_test()
+    print("help?")
+    local scope = ts.capture_scope()
+end
+
+local dc = vim.api.nvim_del_user_command
+function M.cockpit_refresh()
+    for module_name in pairs(package.loaded) do
+        if module_name:match("^cockpit") then
+            package.loaded[module_name] = nil
+        end
     end
-    break
-  end
-  node = node:parent()
+    pcall(dc, "CockpitTest")
+    pcall(dc, "CockpitRefresh")
+    require("cockpit")
 end
 
-if not node then
-  print("Not inside a function")
-end
+vim.api.nvim_create_user_command(
+    "CockpitTest",
+    M.cockpit_test,
+    {}
+)
+
+vim.api.nvim_create_user_command(
+    "CockpitRefresh",
+    M.cockpit_refresh,
+    {}
+)
+
+return M
+

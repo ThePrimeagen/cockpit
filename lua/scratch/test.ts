@@ -6,7 +6,6 @@ type Bar = {
 }
 
 function foo() {
-    let bar: Bar = {foo: 5, baz: { another_prop:
 }
 
 export {}
