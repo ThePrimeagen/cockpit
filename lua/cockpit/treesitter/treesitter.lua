@@ -53,7 +53,7 @@ end
 
 function Scope:finalize()
     assert(#self.range == #self.scope, "range scope mismatch")
-    table.sort(self.range, function (a, b)
+    table.sort(self.range, function(a, b)
         return a:contains_range(b)
     end)
 end
@@ -78,12 +78,13 @@ function M.get_smallest_scope()
         end
     end
 
-    assert(scope:has_scope(), "get smallest scope failed.  it should never fail since scopeset should contain the \"program\" scope")
+    assert(
+        scope:has_scope(),
+        'get smallest scope failed.  it should never fail since scopeset should contain the "program" scope'
+    )
     scope:finalize()
 
     return scope
 end
 
 return M
-
-

@@ -7,11 +7,17 @@ local FATAL = 15
 --- @param level number
 --- @return string
 local function levelToString(level)
-    if level == DEBUG then return "DEBUG"
-    elseif level == INFO then return "INFO"
-    elseif level == WARN then return "WARN"
-    elseif level == ERROR then return "ERROR"
-    elseif level == FATAL then return "FATAL" end
+    if level == DEBUG then
+        return "DEBUG"
+    elseif level == INFO then
+        return "INFO"
+    elseif level == WARN then
+        return "WARN"
+    elseif level == ERROR then
+        return "ERROR"
+    elseif level == FATAL then
+        return "FATAL"
+    end
     assert(false, "unknown level", level)
 end
 
@@ -19,7 +25,10 @@ end
 local function stringifyArgs(...)
     local count = select("#", ...)
     local out = {}
-    assert(count % 2 == 0, "you cannot call logging with an odd number of args. e.g: msg, [k, v]...")
+    assert(
+        count % 2 == 0,
+        "you cannot call logging with an odd number of args. e.g: msg, [k, v]..."
+    )
     for i = 1, count, 2 do
         local key = select(i, ...)
         local value = select(i + 1, ...)
@@ -40,11 +49,12 @@ PrintSink.__index = PrintSink
 
 --- @return LoggerSink
 function PrintSink:new()
-    return setmetatable({ }, self)
+    return setmetatable({}, self)
 end
 
 --- @param str string
 function PrintSink:write_line(str)
+    local _ = self
     print(str)
 end
 
@@ -63,7 +73,8 @@ end
 
 --- @param path string
 function Logger:file_sink(path)
-    _ = path
+    local _ = path
+    _ = self
     assert(false, "not implemented")
 end
 
@@ -73,7 +84,9 @@ function Logger:_log(level, msg, ...)
     end
 
     local args = stringifyArgs(...)
-    self.sink.write_line(string.format("[%s]: %s %s", levelToString(level), msg, args))
+    self.sink.write_line(
+        string.format("[%s]: %s %s", levelToString(level), msg, args)
+    )
 end
 
 --- @param msg string
@@ -106,3 +119,5 @@ function Logger:fatal(msg, ...)
     self:_log(FATAL, msg, ...)
     assert(false, "fatal msg recieved")
 end
+
+return Logger

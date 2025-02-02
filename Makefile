@@ -9,7 +9,7 @@ lua_lint:
 lua_test:
 	echo "===> Testing"
 	nvim --headless --noplugin -u scripts/tests/minimal.vim \
-        -c "PlenaryBustedDirectory lua/vim-with-me {minimal_init = 'scripts/tests/minimal.vim'}"
+        -c "PlenaryBustedDirectory lua/cockpit {minimal_init = 'scripts/tests/minimal.vim'}"
 
 pr-ready: lua_fmt lua_lint lua_test
 

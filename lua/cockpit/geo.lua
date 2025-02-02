@@ -1,5 +1,3 @@
-local M = {}
-
 local project_row = 100000000
 
 --- @param point_or_row Point | number
