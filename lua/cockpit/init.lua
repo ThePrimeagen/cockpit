@@ -4,7 +4,11 @@ local M = {}
 
 function M.cockpit_test()
     local scope = ts.get_smallest_scope()
-    print(vim.inspect(scope.range:to_text()))
+    for i, v in ipairs(scope.range) do
+        print("node:", scope.scope[i]:named(), scope.scope[i]:type())
+        print(vim.inspect(v:to_text()))
+        print("")
+    end
 end
 
 local dc = vim.api.nvim_del_user_command

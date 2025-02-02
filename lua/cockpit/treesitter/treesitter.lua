@@ -16,8 +16,8 @@ local function tree_root()
 end
 
 --- @class Scope
---- @field scope TSNode | nil
---- @field range Range | nil
+--- @field scope TSNode[]
+--- @field range Range[]
 --- @field buffer number
 --- @field cursor Point
 local Scope = {}
@@ -28,8 +28,8 @@ Scope.__index = Scope
 --- @return Scope
 function Scope:new(cursor, buffer)
     return setmetatable({
-        scope = nil,
-        range = nil,
+        scope = {},
+        range = {},
         buffer = buffer,
         cursor = cursor,
     }, self)
@@ -47,10 +47,15 @@ function Scope:push(node)
         return
     end
 
-    if self.range == nil or self.range:contains_range(range) then
-        self.range = range
-        self.scope = node
-    end
+    table.insert(self.range, range)
+    table.insert(self.scope, node)
+end
+
+function Scope:finalize()
+    assert(#self.range == #self.scope, "range scope mismatch")
+    table.sort(self.range, function (a, b)
+        return a:contains_range(b)
+    end)
 end
 
 --- @return Scope
@@ -74,6 +79,7 @@ function M.get_smallest_scope()
     end
 
     assert(scope:has_scope(), "get smallest scope failed.  it should never fail since scopeset should contain the \"program\" scope")
+    scope:finalize()
 
     return scope
 end
