@@ -16,7 +16,7 @@ local function tree_root()
 end
 
 ---
-function M.capture_scope()
+function M.get_smallest_scope()
     local lang = vim.bo.ft
     local root = tree_root()
     local bufnr = vim.api.nvim_get_current_buf()
@@ -29,10 +29,12 @@ function M.capture_scope()
     for pattern, match, metadata in query:iter_matches(root, bufnr, 0, -1, { all = true }) do
         for id, nodes in pairs(match) do
             local name = query.captures[id]
+            print("query id", id, "name", name)
             for _, node in ipairs(nodes) do
                 local range = Range:from_ts_node(node, bufnr)
                 print(vim.inspect(range:to_text()))
                 local node_data = metadata[id] -- Node level metadata
+                print("node_data", vim.inspect(node_data))
             end
         end
     end
