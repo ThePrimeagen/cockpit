@@ -1,12 +1,10 @@
 local ts = require("cockpit.treesitter.treesitter")
-local utils = require("cockpit.utils")
-local ts_utils = require("nvim-treesitter.ts_utils")
 
 local M = {}
 
 function M.cockpit_test()
-    print("help?")
-    local scope = ts.capture_scope()
+    local scope = ts.get_smallest_scope()
+    print(vim.inspect(scope.range:to_text()))
 end
 
 local dc = vim.api.nvim_del_user_command

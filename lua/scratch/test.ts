@@ -12,6 +12,7 @@ class Foo {
     }
 
     foofoo() {
+        var b = {}
     }
 }
 

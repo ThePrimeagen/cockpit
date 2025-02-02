@@ -1,57 +1,81 @@
-local utils = require("cockpit.utils")
-local Point = utils.Point
-local Range = utils.Range
+local geo = require("cockpit.geo")
+local Point = geo.Point
+local Range = geo.Range
 
 local M = {}
 
-local query_group = "cockpit"
+local scope_query = "cockpit-scope"
 local function tree_root()
-    local bufnr = vim.api.nvim_get_current_buf()
+    local buffer = vim.api.nvim_get_current_buf()
     local lang = vim.bo.ft
 
     -- Load the parser and the query.
-    local parser = vim.treesitter.get_parser(bufnr, lang)
+    local parser = vim.treesitter.get_parser(buffer, lang)
     local tree = parser:parse()[1]
     return tree:root()
 end
 
----
+--- @class Scope
+--- @field scope TSNode | nil
+--- @field range Range | nil
+--- @field buffer number
+--- @field cursor Point
+local Scope = {}
+Scope.__index = Scope
+
+--- @param cursor Point
+--- @param buffer number
+--- @return Scope
+function Scope:new(cursor, buffer)
+    return setmetatable({
+        scope = nil,
+        range = nil,
+        buffer = buffer,
+        cursor = cursor,
+    }, self)
+end
+
+--- @return boolean
+function Scope:has_scope()
+    return self.range ~= nil
+end
+
+--- @param node TSNode
+function Scope:push(node)
+    local range = Range:from_ts_node(node, self.buffer)
+    if not range:contains(self.cursor) then
+        return
+    end
+
+    if self.range == nil or self.range:contains_range(range) then
+        self.range = range
+        self.scope = node
+    end
+end
+
+--- @return Scope
 function M.get_smallest_scope()
     local lang = vim.bo.ft
     local root = tree_root()
-    local bufnr = vim.api.nvim_get_current_buf()
-    local ok, query = pcall(vim.treesitter.query.get, lang, query_group)
-    if not ok or not query then
-        print("Failed to load query group:", query_group)
-        return
-    end
+    local buffer = vim.api.nvim_get_current_buf()
+    local ok, query = pcall(vim.treesitter.query.get, lang, scope_query)
+
+    assert(ok, "unable to load query for", lang, scope_query)
+    assert(query ~= nil, "unable to find query", lang, scope_query)
+
     local cursor = Point:from_cursor()
-    for pattern, match, metadata in query:iter_matches(root, bufnr, 0, -1, { all = true }) do
-        for id, nodes in pairs(match) do
-            local name = query.captures[id]
-            print("query id", id, "name", name)
+    local scope = Scope:new(cursor, buffer)
+    for _, match, _ in query:iter_matches(root, buffer, 0, -1, { all = true }) do
+        for _, nodes in pairs(match) do
             for _, node in ipairs(nodes) do
-                local range = Range:from_ts_node(node, bufnr)
-                print(vim.inspect(range:to_text()))
-                local node_data = metadata[id] -- Node level metadata
-                print("node_data", vim.inspect(node_data))
+                scope:push(node)
             end
         end
     end
 
-end
+    assert(scope:has_scope(), "get smallest scope failed.  it should never fail since scopeset should contain the \"program\" scope")
 
-function M.find_function_at_cursor()
-
-
-
-    -- Iterate over all matches for our query.
-    -- Your query is:
-    --
-    --   (function_declaration name: (identifier) @function.name)
-    --
-    -- That capture gives you the identifier node. To get the full function declaration,
-    -- we take its parent.
+    return scope
 end
 
 return M

@@ -60,17 +60,47 @@ function Point:to_ts()
     return self.row - 1, self.col - 1
 end
 
+--- @param point Point
+--- @return boolean
+function Point:gt(point)
+    return project(self) > project(point)
+end
+
+--- @param point Point
+--- @return boolean
+function Point:lt(point)
+    return project(self) < project(point)
+end
+
+--- @param point Point
+--- @return boolean
+function Point:lte(point)
+    return project(self) <= project(point)
+end
+
+--- @param point Point
+--- @return boolean
+function Point:gte(point)
+    return project(self) >= project(point)
+end
+
+--- @param point Point
+--- @return boolean
+function Point:eq(point)
+    return project(self) == project(point)
+end
+
 --- @class Range
 --- @field start Point
 --- @field end_ Point
---- @field bufnr number
+--- @field buffer number
 local Range = {}
 Range.__index = Range
 
 ---@param node TSNode
----@param bufnr number
+---@param buffer number
 ---@return Range
-function Range:from_ts_node(node, bufnr)
+function Range:from_ts_node(node, buffer)
     -- ts is zero based
     local start_row, start_col, _ = node:start()
     local end_row, end_col, _ = node:end_()
@@ -78,7 +108,7 @@ function Range:from_ts_node(node, bufnr)
     local range = {
         start = Point:from_ts_point(start_row, start_col),
         end_ = Point:from_ts_point(end_row, end_col),
-        bufnr = bufnr,
+        buffer = buffer,
     }
 
     return setmetatable(range, self)
@@ -95,10 +125,15 @@ end
 
 --- @return string
 function Range:to_text()
-    print("point", vim.inspect(self.start))
     local sr, sc = self.start:to_vim()
     local er, ec = self.end_:to_vim()
-    return vim.api.nvim_buf_get_text(self.bufnr, sr, sc, er, ec, {})
+    return vim.api.nvim_buf_get_text(self.buffer, sr, sc, er, ec, {})
+end
+
+--- @param range Range
+--- @return boolean
+function Range:contains_range(range)
+    return self.start:lte(range.start) and self.end_:gte(range.end_)
 end
 
 return {
