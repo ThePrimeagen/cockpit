@@ -7,8 +7,11 @@ type Bar = {
 }
 
 class Foo {
-    prop = () => {
-        console.log("hello");
+    hereIsAProp = 69
+    another = 42
+
+    constructor() {
+        console.log("hello")
     }
 
     foofoo() {

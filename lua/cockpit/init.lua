@@ -1,13 +1,14 @@
 local ts = require("cockpit.treesitter.treesitter")
+local logger = require("cockpit.logger.logger")
 
 local M = {}
 
 function M.cockpit_test()
-    local scope = ts.get_smallest_scope()
-    for i, v in ipairs(scope.range) do
-        print("node:", scope.scope[i]:named(), scope.scope[i]:type())
-        print(vim.inspect(v:to_text()))
-        print("")
+    local scope = ts.scopes()
+
+    for i = 1, #scope.scope do
+        local range = scope.range[i]
+        logger:info("found text", "content", range:to_text())
     end
 end
 
@@ -23,8 +24,17 @@ function M.cockpit_refresh()
     require("cockpit")
 end
 
-vim.api.nvim_create_user_command("CockpitTest", M.cockpit_test, {})
+vim.api.nvim_create_user_command(
+    "CockpitTest",
+    M.cockpit_test,
+    {}
+)
 
-vim.api.nvim_create_user_command("CockpitRefresh", M.cockpit_refresh, {})
+vim.api.nvim_create_user_command(
+    "CockpitRefresh",
+    M.cockpit_refresh,
+    {}
+)
 
 return M
+

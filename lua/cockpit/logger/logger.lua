@@ -19,9 +19,11 @@ local function levelToString(level)
         return "FATAL"
     end
     assert(false, "unknown level", level)
+    return ""
 end
 
 --- @param ... any[]
+--- @return string
 local function stringifyArgs(...)
     local count = select("#", ...)
     local out = {}
@@ -33,13 +35,19 @@ local function stringifyArgs(...)
         local key = select(i, ...)
         local value = select(i + 1, ...)
         assert(type(key) == "string", "keys in logging must be strings")
+
         if type(value) == "table" then
-            value = vim.inspect(value)
+            if type(value.to_string) == "function" then
+                value = value:to_string()
+            else
+                value = vim.inspect(value)
+            end
         else
-            value = string(value)
+            value = tostring(value)
         end
         table.insert(out, string.format("%s=%s", key, value))
     end
+    return table.concat(out, " ")
 end
 
 --- @class LoggerSink
@@ -84,13 +92,12 @@ function Logger:_log(level, msg, ...)
     end
 
     local args = stringifyArgs(...)
-    self.sink.write_line(
-        string.format("[%s]: %s %s", levelToString(level), msg, args)
-    )
+    local line = string.format("[%s]: %s %s", levelToString(level), msg, args)
+    self.sink:write_line(line)
 end
 
 --- @param msg string
---- @param ... any[]
+--- @param ... any
 function Logger:info(msg, ...)
     self:_log(INFO, msg, ...)
 end
@@ -120,4 +127,6 @@ function Logger:fatal(msg, ...)
     assert(false, "fatal msg recieved")
 end
 
-return Logger
+local module_logger = Logger:new()
+
+return module_logger

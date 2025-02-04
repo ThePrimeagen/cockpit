@@ -58,8 +58,10 @@ function Scope:finalize()
     end)
 end
 
+--- if you want cursor just use Point:from_cursor()
+--- @param cursor Point
 --- @return Scope
-function M.get_smallest_scope()
+function M.scopes(cursor)
     local lang = vim.bo.ft
     local root = tree_root()
     local buffer = vim.api.nvim_get_current_buf()
@@ -68,7 +70,6 @@ function M.get_smallest_scope()
     assert(ok, "unable to load query for", lang, scope_query)
     assert(query ~= nil, "unable to find query", lang, scope_query)
 
-    local cursor = Point:from_cursor()
     local scope = Scope:new(cursor, buffer)
     for _, match, _ in query:iter_matches(root, buffer, 0, -1, { all = true }) do
         for _, nodes in pairs(match) do

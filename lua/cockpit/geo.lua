@@ -17,6 +17,21 @@ end
 local Point = {}
 Point.__index = Point
 
+function Point:to_string()
+    return string.format("point(%d,%d)", self.row, self.col)
+end
+
+--- 1 based point
+--- @param row number
+--- @param col number
+--- @return Point
+function Point:new(row, col)
+    return setmetatable({
+        row = row,
+        col = col,
+    }, self)
+end
+
 function Point:from_cursor()
     local point = setmetatable({
         row = 0,
@@ -95,6 +110,17 @@ end
 local Range = {}
 Range.__index = Range
 
+---@param buffer number
+--- @param start Point
+---@param end_ Point
+function Range:new(buffer, start, end_)
+    return setmetatable({
+        start = start,
+        end_ = end_,
+        buffer = buffer,
+    }, self)
+end
+
 ---@param node TSNode
 ---@param buffer number
 ---@return Range
@@ -125,13 +151,21 @@ end
 function Range:to_text()
     local sr, sc = self.start:to_vim()
     local er, ec = self.end_:to_vim()
-    return vim.api.nvim_buf_get_text(self.buffer, sr, sc, er, ec, {})
+
+    -- note
+    -- this api is 0 index end exclusive for _only_ column
+    local text = vim.api.nvim_buf_get_text(self.buffer, sr, sc, er, ec + 1, {})
+    return table.concat(text, "\n")
 end
 
 --- @param range Range
 --- @return boolean
 function Range:contains_range(range)
     return self.start:lte(range.start) and self.end_:gte(range.end_)
+end
+
+function Range:to_string()
+    return string.format("range(%s,%s)", self.start:to_string(), self.end_:to_string())
 end
 
 return {
