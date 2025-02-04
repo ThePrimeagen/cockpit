@@ -1,5 +1,4 @@
 local ts = require("cockpit.treesitter.treesitter")
-local logger = require("cockpit.logger.logger")
 local Point = require("cockpit.geo").Point
 local fim = require("cockpit.fim.fim")
 
@@ -10,9 +9,6 @@ function M.cockpit_test()
     local scope = ts.scopes(cursor)
     local row, col = cursor:to_vim()
     local fimmed = fim.fim(scope.range[1]:to_text(), row, col)
-
-    print(cursor:to_string())
-    print(fimmed)
 end
 
 local dc = vim.api.nvim_del_user_command
