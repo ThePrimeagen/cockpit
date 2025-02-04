@@ -1,15 +1,18 @@
 local ts = require("cockpit.treesitter.treesitter")
 local logger = require("cockpit.logger.logger")
+local Point = require("cockpit.geo").Point
+local fim = require("cockpit.fim.fim")
 
 local M = {}
 
 function M.cockpit_test()
-    local scope = ts.scopes()
+    local cursor = Point:from_cursor()
+    local scope = ts.scopes(cursor)
+    local row, col = cursor:to_vim()
+    local fimmed = fim.fim(scope.range[1]:to_text(), row, col)
 
-    for i = 1, #scope.scope do
-        local range = scope.range[i]
-        logger:info("found text", "content", range:to_text())
-    end
+    print(cursor:to_string())
+    print(fimmed)
 end
 
 local dc = vim.api.nvim_del_user_command
