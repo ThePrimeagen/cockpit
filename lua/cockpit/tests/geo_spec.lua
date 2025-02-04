@@ -1,3 +1,4 @@
+local ts = require("cockpit.treesitter.treesitter")
 local geo = require("cockpit.geo")
 
 local Point = geo.Point
@@ -6,19 +7,22 @@ local eq = assert.are.same
 
 describe("range", function()
     it("range with to_text ", function()
-        vim.cmd [[:e lua/cockpit/tests/test_file.ts]]
-        eq([[class Foo {
+        vim.cmd([[:e lua/cockpit/tests/test_file.ts]])
+        eq(
+            [[class Foo {
     method() {
         var b = {}
     }
 }]],
-        Range:new(0, Point:new(1, 1), Point:new(5, 1)):to_text())
+            Range:new(0, Point:new(1, 1), Point:new(5, 2)):to_text()
+        )
 
-        eq([[function(i) {
+        eq(
+            [[function(i) {
         return i + 7
     }]],
-        Range:new(0, Point:new(8, 26), Point:new(10, 5)):to_text())
-
+            Range:new(0, Point:new(8, 26), Point:new(10, 6)):to_text()
+        )
     end)
 
     it("point comparisons", function()
@@ -35,5 +39,17 @@ describe("range", function()
         eq(true, p1:lte(p5))
         eq(true, p1:gte(p5))
     end)
-end)
 
+    it("range with scopes", function()
+        vim.cmd([[:e lua/cockpit/tests/test_file.ts]])
+        local content = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, true), "\n")
+        local scopes = ts.scopes(Point:new(1, 1))
+        eq(content, scopes.range[1]:to_text())
+        eq([[class Foo {
+    method() {
+        var b = {}
+    }
+}]], scopes.range[2]:to_text())
+
+    end)
+end)

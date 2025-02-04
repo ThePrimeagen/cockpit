@@ -125,10 +125,10 @@ end
 ---@param buffer number
 ---@return Range
 function Range:from_ts_node(node, buffer)
+
     -- ts is zero based
     local start_row, start_col, _ = node:start()
     local end_row, end_col, _ = node:end_()
-
     local range = {
         start = Point:from_ts_point(start_row, start_col),
         end_ = Point:from_ts_point(end_row, end_col),
@@ -154,7 +154,12 @@ function Range:to_text()
 
     -- note
     -- this api is 0 index end exclusive for _only_ column
-    local text = vim.api.nvim_buf_get_text(self.buffer, sr, sc, er, ec + 1, {})
+    if ec == 0 then
+        ec = -1
+        er = er - 1
+    end
+
+    local text = vim.api.nvim_buf_get_text(self.buffer, sr, sc, er, ec, {})
     return table.concat(text, "\n")
 end
 
@@ -165,7 +170,11 @@ function Range:contains_range(range)
 end
 
 function Range:to_string()
-    return string.format("range(%s,%s)", self.start:to_string(), self.end_:to_string())
+    return string.format(
+        "range(%s,%s)",
+        self.start:to_string(),
+        self.end_:to_string()
+    )
 end
 
 return {

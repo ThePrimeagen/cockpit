@@ -24,17 +24,8 @@ function M.cockpit_refresh()
     require("cockpit")
 end
 
-vim.api.nvim_create_user_command(
-    "CockpitTest",
-    M.cockpit_test,
-    {}
-)
+vim.api.nvim_create_user_command("CockpitTest", M.cockpit_test, {})
 
-vim.api.nvim_create_user_command(
-    "CockpitRefresh",
-    M.cockpit_refresh,
-    {}
-)
+vim.api.nvim_create_user_command("CockpitRefresh", M.cockpit_refresh, {})
 
 return M
-

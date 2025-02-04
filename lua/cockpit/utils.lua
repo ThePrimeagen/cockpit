@@ -1,6 +1,5 @@
 local M = {}
 
-
 --- @param str string
 --- @param sep string
 --- @return table
@@ -9,7 +8,7 @@ function M.split(str, sep)
         sep = "%s"
     end
     local t = {}
-    for s in string.gmatch(str, "([^"..sep.."]+)") do
+    for s in string.gmatch(str, "([^" .. sep .. "]+)") do
         table.insert(t, s)
     end
     return t
