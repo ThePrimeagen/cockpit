@@ -8,7 +8,6 @@ local eq = assert.are.same
 describe("faux test", function()
     it("here we are", function()
         local buffer = utils.create_test_file()
-
         eq([[class Foo {
     method() {
         var b = {}
@@ -20,5 +19,6 @@ describe("faux test", function()
         return i + 7
     }]],
         Range:new(buffer, Point:new(7, 26), Point:new(9, 5)):to_text())
+
     end)
 end)
