@@ -2,9 +2,9 @@ local utils = require("cockpit.utils")
 
 local M = {}
 
-M.prefix = "<|fim-prefix|>"
-M.suffix = "<|fim-suffix|>"
-M.mid = "<|fim-middle|>"
+M.prefix = "<|fim_prefix|>"
+M.suffix = "<|fim_suffix|>"
+M.mid = "<|fim_middle|>"
 
 --- @param text string
 ---@param row number

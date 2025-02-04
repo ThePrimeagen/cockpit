@@ -20,16 +20,9 @@ class Foo {
 }
 
 function foo() {
-    var baz = [].
-        map(i => i).
-        map((i) => i).
-        map((i) => {
-            return i
-        }).
-        map(function(i) {
-            return i;
-        });
-
+    return [1, 2, 3].map(function(i) {
+        if (
+    });
 }
 
 export {}

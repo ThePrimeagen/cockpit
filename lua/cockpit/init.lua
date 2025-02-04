@@ -1,6 +1,7 @@
 local ts = require("cockpit.treesitter.treesitter")
 local Point = require("cockpit.geo").Point
-local fim = require("cockpit.fim.fim")
+local llm = require("cockpit.llm")
+local req = require("cockpit.req.req")
 
 local M = {}
 
@@ -8,7 +9,10 @@ function M.cockpit_test()
     local cursor = Point:from_cursor()
     local scope = ts.scopes(cursor)
     local row, col = cursor:to_vim()
-    local fimmed = fim.fim(scope.range[1]:to_text(), row, col)
+    local fimmed = llm.fim.fim(scope.range[1]:to_text(), row, col)
+    req.complete(fimmed, function(data)
+        print("complete:", llm.openai.get_first_content(data))
+    end)
 end
 
 local dc = vim.api.nvim_del_user_command
@@ -24,7 +28,6 @@ function M.cockpit_refresh()
 end
 
 vim.api.nvim_create_user_command("CockpitTest", M.cockpit_test, {})
-
 vim.api.nvim_create_user_command("CockpitRefresh", M.cockpit_refresh, {})
 
 return M
