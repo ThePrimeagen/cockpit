@@ -35,6 +35,13 @@ function Point:set_text_line(buffer, text)
     vim.api.nvim_buf_set_lines(buffer, r, r + 1, false, {text})
 end
 
+function Point:update_to_end_of_line()
+    self.col = vim.fn.col('$') + 1
+    local r, c = self:to_one_zero_index()
+
+    vim.api.nvim_win_set_cursor(0, {r, c})
+end
+
 --- @param buffer number
 function Point:insert_new_line_below(buffer)
     vim.api.nvim_input("<esc>o")
@@ -91,6 +98,10 @@ end
 --- @return number, number
 function Point:to_vim()
     return self.row - 1, self.col - 1
+end
+
+function Point:to_one_zero_index()
+    return self.row, self.col - 1
 end
 
 --- treesitter uses 0 based row and col

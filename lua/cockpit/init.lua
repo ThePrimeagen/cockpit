@@ -94,8 +94,9 @@ function M.setup(opts)
             pending_request = true
             local row, col = cursor:to_lua()
             local prefix = llm.lang.prefix(scope.range[1]:to_text(), row, col)
+            prefix = llm.lang.add_line_numbers(prefix)
             local loc = string.format("%d, %d\n", row, col)
-            logger:info("run_complete code request", "loc", loc)
+            logger:info("run_complete code request", "loc", loc, "prefix", prefix)
 
             current_line = cursor:get_text_line(buffer)
             req.complete(string.format("<code>%s</code><location>%s</location>", prefix, loc), function(data)
@@ -185,6 +186,7 @@ function M.setup(opts)
         local final = line .. remaining_completion
         --]]
         cursor:set_text_line(buffer, line .. completion:sub(idx))
+        cursor:update_to_end_of_line()
     end)
 
 end
