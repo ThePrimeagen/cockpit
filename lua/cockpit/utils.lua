@@ -14,14 +14,12 @@ function M.partial_match(str, partial)
         local found = true
         if curr == first then
             for j = 1, #partial - 1 do
-                logger:info("partial_match inner#match", "i", i, "j", j)
                 if not found then
                     break
                 end
 
                 if i + j > #str then
-                    logger:info("partial_match found", "returning", j)
-                    return true, j
+                    return true, j + 1
                 end
 
                 local expected = str:byte(i + j, i + j)

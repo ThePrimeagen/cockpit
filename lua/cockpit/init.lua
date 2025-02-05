@@ -159,7 +159,7 @@ function M.setup(opts)
         end
 
         local sub_match = line:sub(idx)
-        local completion = llm.openai.get_first_content(current_request)
+        local completion = vim.trim(llm.openai.get_first_content(current_request))
         local _, idx = utils.partial_match(line, completion)
 
         --[[
@@ -176,6 +176,7 @@ function M.setup(opts)
         local final = line .. remaining_completion
         --]]
         cursor:set_text_line(buffer, line .. completion:sub(idx))
+        cursor:insert_new_line_below(buffer)
     end)
 
 end

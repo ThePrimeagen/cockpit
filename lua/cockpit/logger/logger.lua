@@ -42,9 +42,12 @@ local function stringifyArgs(...)
             else
                 value = vim.inspect(value)
             end
+        elseif type(value) == "string" then
+            value = string.format("\"%s\"", value)
         else
             value = tostring(value)
         end
+
         table.insert(out, string.format("%s=%s", key, value))
     end
     return table.concat(out, " ")

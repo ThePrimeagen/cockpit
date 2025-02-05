@@ -33,8 +33,11 @@ end
 function Point:set_text_line(buffer, text)
     local r, _ = self:to_vim()
     vim.api.nvim_buf_set_lines(buffer, r, r + 1, false, {text})
+end
 
-    -- TODO: new line
+--- @param buffer number
+function Point:insert_new_line_below(buffer)
+    vim.api.nvim_input("<esc>o")
 end
 
 --- 1 based point
