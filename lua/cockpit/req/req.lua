@@ -1,4 +1,3 @@
-local utils = require("cockpit.utils")
 local M = {}
 
 local content_length = "content-length:"
@@ -6,7 +5,7 @@ local content_length = "content-length:"
 --- @param buf string
 --- @return string | nil
 local function decode_http(buf)
-    local lines = utils.split(buf, "\r\n")
+    local lines = vim.split(buf, "\r\n")
     print("lines", vim.inspect(lines))
     local length = 0
     local empty_field_line = 0
@@ -19,7 +18,7 @@ local function decode_http(buf)
         end
 
         if #content_length < #lower and content_length == lower:sub(1, #content_length) then
-            local len = tonumber(utils.trim(lower:sub(#content_length + 1)))
+            local len = tonumber(vim.trim(lower:sub(#content_length + 1)))
             if len == nil then
                 error("bad request response?", lower)
                 -- todo: put in the logger
@@ -38,7 +37,7 @@ local function decode_http(buf)
         return
     end
 
-    return table.concat(utils.slice(lines, empty_field_line + 1), "\n")
+    return table.concat(vim.list_slice(lines, empty_field_line + 1), "\n")
 end
 
 --- @param req string

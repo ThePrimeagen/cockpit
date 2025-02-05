@@ -26,10 +26,7 @@ function VirtualText:render()
 end
 
 function VirtualText:clear()
-    if self.vt_id == nil then
-        return nil
-    end
-    vim.api.nvim_buf_del_extmark(0, ns_id, self.vt_id)
+    vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
 end
 
 --- @param text string

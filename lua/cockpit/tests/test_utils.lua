@@ -1,8 +1,7 @@
-local utils = require("cockpit.utils")
 local api = vim.api
 
 local function create_test_file()
-    local content = utils.split(
+    local content = vim.split(
         [[class Foo {
     method() {
         var b = {}

@@ -1,36 +1,39 @@
 local M = {}
 
 --- @param str string
---- @param sep string
---- @return table
-function M.split(str, sep)
-    if sep == nil then
-        sep = " "
+--- @param partial string
+--- @return boolean
+function M.partial_match(str, partial)
+    -- TODO: this doesn't work with utf8 maybe...
+    for i = 1, #str do
+        local curr = str:byte(i, i)
+        local first = partial:byte(1, 1)
+
+        local found = true
+        if curr == first then
+            for j = 1, #partial - 1 do
+                if not found then
+                    break
+                end
+
+                if i + j > #str then
+                    return true
+                end
+
+                local expected = str:byte(i + j, i + j)
+                local received = partial:byte(j + 1, j + 1)
+                found = expected == received
+            end
+
+            if found then
+                return true
+            end
+        end
     end
-    return vim.split(str, sep)
+
+    return false
 end
 
-function M.trim(s)
-    return s:match("^%s*(.-)%s*$")
-end
-
---- @param arr any[]
---- @param start number
---- @param stop number | nil
-function M.slice(arr, start, stop)
-    if stop == nil then
-        stop = #arr
-    end
-
-    assert(start <= stop, "dude, wtf you slapped a fish")
-
-    local out = {}
-    for i = start, stop do
-        table.insert(out, arr[i])
-    end
-
-    return out
-end
-
+M.partial_match("foofofofofofofofofof", "bar")
 
 return M

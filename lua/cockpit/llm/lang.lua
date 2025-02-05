@@ -1,5 +1,3 @@
-local utils = require("cockpit.utils")
-
 local M = {}
 
 M.prefix = "<|fim_prefix|>"
@@ -11,7 +9,7 @@ M.mid = "<|fim_middle|>"
 --- @param col number
 --- @return string
 function M.prefix(text, row, col)
-    local lines = utils.split(text, "\n")
+    local lines = vim.split(text, "\n")
     local prefix = {}
     for i = 1, row do
         table.insert(prefix, lines[i])
@@ -26,7 +24,7 @@ end
 --- @param col number
 --- @return string
 function M.suffix(text, row, col)
-    local lines = utils.split(text, "\n")
+    local lines = vim.split(text, "\n")
     local suffix = {}
     for i = row, #text do
         table.insert(suffix, lines[i])

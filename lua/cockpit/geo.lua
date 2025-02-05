@@ -21,6 +21,13 @@ function Point:to_string()
     return string.format("point(%d,%d)", self.row, self.col)
 end
 
+--- @param buffer number
+--- @return string
+function Point:get_text_line(buffer)
+    local r, _ = self:to_vim()
+    return vim.api.nvim_buf_get_lines(buffer, r, r + 1, true)[1]
+end
+
 --- 1 based point
 --- @param row number
 --- @param col number
