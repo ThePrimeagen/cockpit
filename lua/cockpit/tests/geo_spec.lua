@@ -1,4 +1,4 @@
-local ts = require("cockpit.treesitter.treesitter")
+local ts = require("cockpit.editor.treesitter")
 local geo = require("cockpit.geo")
 
 local Point = geo.Point

@@ -1,9 +1,10 @@
 local utils = require("cockpit.utils")
-local ts = require("cockpit.treesitter.treesitter")
+local ts = require("cockpit.editor.treesitter")
 local Point = require("cockpit.geo").Point
 local llm = require("cockpit.llm")
 local req = require("cockpit.req.req")
 local logger = require("cockpit.logger.logger")
+local config = require("cockpit.config")
 
 local M = {}
 
@@ -27,7 +28,7 @@ function M.setup(opts)
 
     initialized = true
 
-    opts = vim.tbl_extend("force", {}, opts or {})
+    opts = vim.tbl_extend("force", config.default(), opts or {})
     logger:file_sink("/tmp/cockpit")
     logger:warn("cockpit#setup")
 
@@ -91,14 +92,16 @@ function M.setup(opts)
                 return
             end
 
-            pending_request = true
             local row, col = cursor:to_lua()
+
+            logger:info("scopes", "scope", scope)
             local prefix = llm.lang.prefix(scope.range[1]:to_text(), row, col)
             prefix = llm.lang.add_line_numbers(prefix)
             local loc = string.format("%d, %d\n", row, col)
             logger:info("run_complete code request", "loc", loc, "prefix", prefix)
 
             current_line = cursor:get_text_line(buffer)
+            pending_request = true
             req.complete(string.format("<code>%s</code><location>%s</location>", prefix, loc), function(data)
                 pending_request = false
                 current_request = data

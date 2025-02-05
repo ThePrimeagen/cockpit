@@ -5,6 +5,8 @@ local Range = geo.Range
 local M = {}
 
 local scope_query = "cockpit-scope"
+local imports_query = "cockpit-imports"
+
 local function tree_root()
     local buffer = vim.api.nvim_get_current_buf()
     local lang = vim.bo.ft
@@ -41,7 +43,7 @@ end
 
 --- @return boolean
 function Scope:has_scope()
-    return self.range ~= nil
+    return #self.range > 0
 end
 
 --- @param node TSNode
@@ -81,6 +83,8 @@ function M.scopes(cursor)
     end
 
     local scope = Scope:new(cursor, buffer)
+    scope:push(root)
+
     for _, match, _ in query:iter_matches(root, buffer, 0, -1, { all = true }) do
         for _, nodes in pairs(match) do
             for _, node in ipairs(nodes) do
@@ -98,7 +102,33 @@ function M.scopes(cursor)
     return scope
 end
 
+--- @return unknown
 function M.imports()
+    local root = tree_root()
+    if not root then
+        return nil
+    end
+
+    local buffer = vim.api.nvim_get_current_buf()
+    local ok, query = pcall(vim.treesitter.query.get, vim.bo.ft, imports_query)
+
+    if not ok or query == nil then
+        return nil
+    end
+
+    local imports = {}
+    for _, match, _ in query:iter_matches(root, buffer, 0, -1, { all = true }) do
+        for id, nodes in pairs(match) do
+            local name = query.captures[id]
+            if name == "import.name" then
+                for _, node in ipairs(nodes) do
+                    table.insert(imports, node)
+                end
+            end
+        end
+    end
+
+    return imports
 end
 
 return M

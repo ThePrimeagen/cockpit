@@ -3,6 +3,7 @@
 --- @field end_ fun(self: TSNode): number, number, number
 --- @field named fun(self: TSNode): boolean
 --- @field type fun(self: TSNode): string
+--- @field range fun(self: TSNode): number, number, number, number
 
 --- @class TCPSocket
 --- @field close fun(self: TCPSocket)
@@ -29,7 +30,21 @@
 
 --- @class CockpitOptions
 --- @field log_file_path string | nil
+--- @field language_import_filter table<string, string[]> a list of strings that if exist within the LSP response for file import following will be ignored
 
 --- @class TextChangedIEvent
 --- @field buf number
 --- @field file string
+
+--- @class LspPosition
+--- @field character number
+--- @field line number
+
+--- @class LspRange
+--- @field start LspPosition
+--- @field end LspPosition
+
+--- @class LspDefinitionResult
+--- @field range LspRange
+--- @field uri string
+

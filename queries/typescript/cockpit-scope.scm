@@ -3,5 +3,4 @@
 (function) @context.scope
 (arrow_function) @context.scope
 (method_definition) @context.scope
-(program) @context.scope
 (class_declaration) @context.scope
