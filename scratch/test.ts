@@ -22,9 +22,9 @@ class Foo {
 function foo() {
     return [1, 2, 3].map(function(i) {
         if (i > 1) {
-            retturn i;
-
-
+            return i;
+        }
+        return i;
     });
 }
 
