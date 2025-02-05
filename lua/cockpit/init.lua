@@ -88,7 +88,6 @@ function M.setup(opts)
             logger:info("run_complete code request", "loc", loc)
 
             current_line = cursor:get_text_line(buffer)
-
             req.complete(string.format("<code>%s</code><location>%s</location>", prefix, loc), function(data)
                 pending_request = false
                 current_request = data

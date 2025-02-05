@@ -1,3 +1,4 @@
+local logger = require("cockpit.logger.logger")
 local M = {}
 
 local content_length = "content-length:"
@@ -6,22 +7,20 @@ local content_length = "content-length:"
 --- @return string | nil
 local function decode_http(buf)
     local lines = vim.split(buf, "\r\n")
-    print("lines", vim.inspect(lines))
     local length = 0
     local empty_field_line = 0
     for k, v in ipairs(lines) do
         local lower = v:lower()
         if v == "" then
             empty_field_line = k
-            print("found empty header line", length)
             break
         end
 
         if #content_length < #lower and content_length == lower:sub(1, #content_length) then
             local len = tonumber(vim.trim(lower:sub(#content_length + 1)))
             if len == nil then
-                error("bad request response?", lower)
-                -- todo: put in the logger
+                logger:error("bad request response?", "lower", lower)
+                error("failed at the request")
             end
 
             length = len
@@ -74,7 +73,10 @@ function M.complete(req, cb)
             "GET / HTTP/1.1",
             string.format("Host: localhost:6969"),
         }
-        local prompt = { prompt = req, }
+        local prompt = {
+            prompt = req,
+            language = vim.bo.ft,
+        }
         local str = vim.json.encode(prompt)
 
         table.insert(request, string.format("Content-length: %d", #str))
@@ -88,7 +90,7 @@ function M.complete(req, cb)
     client:connect("127.0.0.1", "6969", function(e)
         if not e then
             read_message()
-            send_message()
+            vim.schedule(send_message)
         else
             -- TODO: make better
             error("could not connect")

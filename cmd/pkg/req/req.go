@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 type Prompt struct {
     Prompt string `json:"prompt"`
+    Language string `json:"language"`
 }
 
 type AiMessage struct {
@@ -88,12 +90,12 @@ func request(url string, payload []byte) ([]byte, error) {
     return body, nil
 }
 
-func RequestLlama(prompt string) LlamaResponse {
+func RequestLlama(prompt Prompt) LlamaResponse {
     cnt, err := json.Marshal(LlamaRequest{
         CachePrompt: false,
         Messages: []AiMessage{
             {Role: "system", Content: "you need to complete the line of code provided.  only respond with one line of code no explanation"},
-            {Role: "system", Content: "language=typescript"},
+            {Role: "system", Content: fmt.Sprintf("language=%s", prompt.Language)},
             {Role: "system", Content: `only finish single line.
 <example>
 <code>
@@ -110,7 +112,7 @@ some_condition) {
 the if statement needs to be completed.  notice we do not fill in the if condition
 </reasoning>
 `},
-            {Role: "user", Content: prompt},
+            {Role: "user", Content: prompt.Prompt},
         },
     })
     if err != nil {

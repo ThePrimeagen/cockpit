@@ -132,25 +132,25 @@ function Logger:info(msg, ...)
 end
 
 --- @param msg string
---- @param ... any[]
+--- @param ... any
 function Logger:warn(msg, ...)
     self:_log(WARN, msg, ...)
 end
 
 --- @param msg string
---- @param ... any[]
+--- @param ... any
 function Logger:debug(msg, ...)
     self:_log(DEBUG, msg, ...)
 end
 
 --- @param msg string
---- @param ... any[]
+--- @param ... any
 function Logger:error(msg, ...)
     self:_log(ERROR, msg, ...)
 end
 
 --- @param msg string
---- @param ... any[]
+--- @param ... any
 function Logger:fatal(msg, ...)
     self:_log(FATAL, msg, ...)
     assert(false, "fatal msg recieved")

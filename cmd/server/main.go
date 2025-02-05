@@ -27,7 +27,7 @@ func main() {
             log.Fatalf("YOU GOT AN ERROR DUMMY BECAUSE YOU DUMB: %s\n", err)
         }
 
-        data := req.RequestLlama(cr.Prompt)
+        data := req.RequestLlama(cr)
         fmt.Printf("llama response: %s\n", string(data.Bytes()))
         w.Write(data.Bytes())
     }))
