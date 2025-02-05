@@ -64,7 +64,7 @@ function M.complete(req, cb)
                 error("decode failed", data)
             end
 
-            cb(d)
+            vim.schedule_wrap(cb)(d)
             client:close()
         end)
     end

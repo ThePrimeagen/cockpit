@@ -28,6 +28,15 @@ function Point:get_text_line(buffer)
     return vim.api.nvim_buf_get_lines(buffer, r, r + 1, true)[1]
 end
 
+--- @param buffer number
+--- @param text string
+function Point:set_text_line(buffer, text)
+    local r, _ = self:to_vim()
+    vim.api.nvim_buf_set_lines(buffer, r, r + 1, false, {text})
+
+    -- TODO: new line
+end
+
 --- 1 based point
 --- @param row number
 --- @param col number

@@ -28,6 +28,7 @@
 --- @field timings OpenAITimings
 
 --- @class CockpitOptions
+--- @field log_file_path string | nil
 
 --- @class TextChangedIEvent
 --- @field buf number

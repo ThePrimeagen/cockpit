@@ -10,7 +10,11 @@ local function tree_root()
     local lang = vim.bo.ft
 
     -- Load the parser and the query.
-    local parser = vim.treesitter.get_parser(buffer, lang)
+    local ok, parser = pcall(vim.treesitter.get_parser, buffer, lang)
+    if not ok then
+        return nil
+    end
+
     local tree = parser:parse()[1]
     return tree:root()
 end
@@ -60,15 +64,21 @@ end
 
 --- if you want cursor just use Point:from_cursor()
 --- @param cursor Point
---- @return Scope
+--- @return Scope | nil
 function M.scopes(cursor)
     local lang = vim.bo.ft
     local root = tree_root()
+    if not root then
+        -- consider logging
+        return nil
+    end
+
     local buffer = vim.api.nvim_get_current_buf()
     local ok, query = pcall(vim.treesitter.query.get, lang, scope_query)
 
-    assert(ok, "unable to load query for", lang, scope_query)
-    assert(query ~= nil, "unable to find query", lang, scope_query)
+    if not ok or query == nil then
+        return nil
+    end
 
     local scope = Scope:new(cursor, buffer)
     for _, match, _ in query:iter_matches(root, buffer, 0, -1, { all = true }) do

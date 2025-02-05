@@ -1,3 +1,4 @@
+local logger = require("cockpit.logger.logger")
 local ns_id = vim.api.nvim_create_namespace("cockpit-vt")
 
 --- @class VirtualText
@@ -26,6 +27,7 @@ function VirtualText:render()
 end
 
 function VirtualText:clear()
+    logger:info("clearing virtual text")
     vim.api.nvim_buf_clear_namespace(0, ns_id, 0, -1)
 end
 
@@ -33,6 +35,7 @@ end
 ---@param row number | nil
 ---@param buffer number | nil
 function VirtualText:update(text, row, buffer)
+    logger:info("VirtualText#update", "text", text, "row", row, "buffer", buffer)
     self.text = text
     if row ~= nil then
         self.row = row

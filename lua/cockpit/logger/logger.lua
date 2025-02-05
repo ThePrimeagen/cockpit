@@ -52,6 +52,34 @@ end
 
 --- @class LoggerSink
 --- @field write_line fun(LoggerSink, string): nil
+
+--- @class FileSink : LoggerSink
+--- @field fd number
+local FileSink = {}
+FileSink.__index = FileSink
+
+--- @param path string
+--- @return LoggerSink
+function FileSink:new(path)
+    local fd, err = vim.uv.fs_open(path, "w", 493)
+    if not fd then
+        error("unable to file sink", err)
+    end
+
+    return setmetatable({
+        fd = fd
+    }, self)
+end
+
+--- @param str string
+function FileSink:write_line(str)
+    local success, err = vim.uv.fs_write(self.fd, str .. "\n")
+    if not success then
+        error("unable to write to file sink", err)
+    end
+end
+
+--- @class PrintSink : LoggerSink
 local PrintSink = {}
 PrintSink.__index = PrintSink
 
@@ -81,9 +109,7 @@ end
 
 --- @param path string
 function Logger:file_sink(path)
-    local _ = path
-    _ = self
-    assert(false, "not implemented")
+    self.sink = FileSink:new(path)
 end
 
 function Logger:_log(level, msg, ...)
