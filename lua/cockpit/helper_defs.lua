@@ -27,3 +27,8 @@
 --- @field choices OpenAIChoices[]
 --- @field timings OpenAITimings
 
+--- @class CockpitOptions
+
+--- @class TextChangedIEvent
+--- @field buf number
+--- @field file string

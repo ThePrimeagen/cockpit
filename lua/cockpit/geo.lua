@@ -63,6 +63,13 @@ end
 
 --- vim.api.nvim_buf_get_text uses 0 based row and col
 --- @return number, number
+function Point:to_lua()
+    return self.row, self.col
+end
+
+
+--- vim.api.nvim_buf_get_text uses 0 based row and col
+--- @return number, number
 function Point:to_vim()
     return self.row - 1, self.col - 1
 end

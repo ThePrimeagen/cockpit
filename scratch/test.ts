@@ -21,7 +21,7 @@ class Foo {
 
 function foo() {
     return [1, 2, 3].map(function(i) {
-        if (
+        if (i %
     });
 }
 

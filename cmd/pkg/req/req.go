@@ -92,7 +92,24 @@ func RequestLlama(prompt string) LlamaResponse {
     cnt, err := json.Marshal(LlamaRequest{
         CachePrompt: false,
         Messages: []AiMessage{
-            {Role: "system", Content: "you need to complete the line of code provided.  only respond with one line of code no explanation. language=typescript"},
+            {Role: "system", Content: "you need to complete the line of code provided.  only respond with one line of code no explanation"},
+            {Role: "system", Content: "language=typescript"},
+            {Role: "system", Content: `only finish single line.
+<example>
+<code>
+if (
+</code>
+<location>
+1, 5
+</location>
+</example>
+<expected_response>
+some_condition) {
+</expected_response>
+<reasoning>
+the if statement needs to be completed.  notice we do not fill in the if condition
+</reasoning>
+`},
             {Role: "user", Content: prompt},
         },
     })

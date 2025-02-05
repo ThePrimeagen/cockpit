@@ -1,0 +1,50 @@
+local ns_id = vim.api.nvim_create_namespace("cockpit-vt")
+
+--- @class VirtualText
+--- @field vt_id unknown
+--- @field row number
+--- @field buffer number
+--- @field text string
+local VirtualText = {}
+VirtualText.__index = VirtualText
+
+--- @return VirtualText
+function VirtualText:new(buffer)
+    return setmetatable({
+        vt_id = nil,
+        row = 0,
+        buffer = buffer,
+        text = "",
+    }, self)
+end
+
+function VirtualText:render()
+    self.vt_id = vim.api.nvim_buf_set_extmark(self.buffer, ns_id, self.row, 0, {
+        virt_text = { { self.text, "Comment" } },
+        right_gravity = true,
+    })
+end
+
+function VirtualText:clear()
+    if self.vt_id == nil then
+        return nil
+    end
+    vim.api.nvim_buf_del_extmark(0, ns_id, self.vt_id)
+end
+
+--- @param text string
+---@param row number | nil
+---@param buffer number | nil
+function VirtualText:update(text, row, buffer)
+    self.text = text
+    if row ~= nil then
+        self.row = row
+    end
+    if buffer ~= nil then
+        self.buffer = buffer
+    end
+end
+
+local vt = VirtualText:new(0)
+
+return vt
