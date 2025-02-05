@@ -160,6 +160,7 @@ function M.setup(opts)
 
         local sub_match = line:sub(idx)
         local completion = llm.openai.get_first_content(current_request)
+        local _, idx = utils.partial_match(line, completion)
 
         --[[
         ok, idx = utils.partial_match(sub_match, completion)
@@ -174,7 +175,7 @@ function M.setup(opts)
 
         local final = line .. remaining_completion
         --]]
-        cursor:set_text_line(buffer, line .. completion)
+        cursor:set_text_line(buffer, line .. completion:sub(idx))
     end)
 
 end

@@ -21,9 +21,7 @@ class Foo {
 
 function foo() {
     return [1, 2, 3].map(function(i) {
-        if (i > 1) {
-            return i * 2;
-        }
+        if (i < 3) { return i; }
     });
 }
 

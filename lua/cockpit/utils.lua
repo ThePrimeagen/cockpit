@@ -35,7 +35,7 @@ function M.partial_match(str, partial)
         end
     end
 
-    return false, 0
+    return false, 1
 end
 
 return M
