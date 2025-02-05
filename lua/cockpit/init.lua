@@ -14,9 +14,19 @@ local cockpit_group = augroup("Cockpit", {})
 local ids = {}
 
 local vt = llm.display
+local initialized = false
 
 --- @param opts CockpitOptions
 function M.setup(opts)
+    if initialized then
+        print("already called setup")
+        logger:warn("everything has been setup already")
+        return
+    end
+    print("running")
+
+    initialized = true
+
     opts = vim.tbl_extend("force", {}, opts or {})
     logger:file_sink("/tmp/cockpit")
     logger:warn("cockpit#setup")
@@ -175,7 +185,6 @@ function M.setup(opts)
         local final = line .. remaining_completion
         --]]
         cursor:set_text_line(buffer, line .. completion:sub(idx))
-        cursor:insert_new_line_below(buffer)
     end)
 
 end

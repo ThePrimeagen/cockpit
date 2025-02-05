@@ -1,8 +1,31 @@
 local M = {}
 
+local function fill(str, len)
+    if #str >= len then
+        return str
+    end
+
+    return string.rep(" ", len - #str) .. str
+end
+
 M.prefix = "<|fim_prefix|>"
 M.suffix = "<|fim_suffix|>"
 M.mid = "<|fim_middle|>"
+
+function M.add_line_numbers(text)
+    local lines = vim.split(text, "\n")
+    local size = 2
+    local count = math.floor(#lines / 10)
+    while count > 0 do
+        size = size + 1
+        count = math.floor(count / 10)
+    end
+
+    for i = 1, #lines do
+        lines[i] = fill(tostring(i) .. ".", size) .. lines[i]
+    end
+    return table.concat(lines, "\n")
+end
 
 --- @param text string
 --- @param row number
