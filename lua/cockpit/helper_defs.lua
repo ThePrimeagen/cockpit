@@ -28,11 +28,6 @@
 --- @field choices OpenAIChoices[]
 --- @field timings OpenAITimings
 
---- @class CockpitOptions
---- @field log_file_path string | nil
---- @field language_import_filter table<string, string[]> a list of strings that if exist within the LSP response for file import following will be ignored
---- @field log_level number | nil
-
 --- @class TextChangedIEvent
 --- @field buf number
 --- @field file string

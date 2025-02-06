@@ -1,4 +1,5 @@
 local logger = require("cockpit.logger.logger")
+local config = require("cockpit.config")
 local geo = require("cockpit.geo")
 local llm = require("cockpit.llm")
 local editor = require("cockpit.editor")
@@ -18,6 +19,7 @@ local Point = geo.Point
 --- @field prefix string
 --- @field context string[]
 --- @field location string
+--- @field request_contents string | nil
 
 --- @class PipelineStateTreeSitter
 --- @field scopes Scope
@@ -251,6 +253,7 @@ function RequestNode:run(state, done)
         state.request.prefix,
         state.request.location
     )
+    state.request.request_contents = content
 
     req.complete(content, function(data)
         local ok, _ = pcall(llm.openai.get_first_content, data)
@@ -362,6 +365,43 @@ function DisplayNode:run(state, done)
     self:_display()
 end
 
+--- @class SaveQueryNode : PipelineNode
+--- @field config CockpitOptions
+local SaveQueryNode = {}
+SaveQueryNode.__index = SaveQueryNode
+
+--- @param opts CockpitOptions
+--- @return SaveQueryNode
+function SaveQueryNode:new(opts)
+    return setmetatable({config = opts}, self)
+end
+function SaveQueryNode:on_key(_) end
+function SaveQueryNode:name()
+    return "SaveQueryNode"
+end
+
+--- @param state PipelineState
+---@param done InternalDone
+function SaveQueryNode:run(state, done)
+    if not self.config.save_queries or state.request.request_contents == nil then
+        return done(true)
+    end
+
+    local path = config.next_save_query_path(self.config)
+    local fd, err = vim.uv.fs_open(path, "w", 493)
+    if not fd then
+        logger:error("unable to create save query file", "path", path, "err", err)
+        return done(true)
+    end
+
+    local success, err2 = vim.uv.fs_write(fd, state.request.request_contents)
+    if not success then
+        logger:error("unable to save query", "path", path, "err", err2)
+    end
+
+    return done(true)
+end
+
 --- @class ApplyVirtualTextNode : PipelineNode
 local ApplyVirtualTextNode = {}
 ApplyVirtualTextNode.__index = ApplyVirtualTextNode
@@ -448,19 +488,20 @@ end
 local Pipeline = {}
 Pipeline.__index = Pipeline
 
---- @param config CockpitOptions
-function Pipeline:new(config)
+--- @param opts CockpitOptions
+function Pipeline:new(opts)
     return setmetatable({
         nodes = {
             InitializeStateNode:new(llm.display),
             TreesitterNode:new(),
-            LspNode:new(config),
+            LspNode:new(opts),
             ReadyRequestNode:new(),
             RequestNode:new(),
+            SaveQueryNode:new(opts),
             DisplayNode:new(llm.display),
             ApplyVirtualTextNode:new(),
         },
-        config = config,
+        config = opts,
         active_node = nil,
         active_state = nil,
         running = false,
