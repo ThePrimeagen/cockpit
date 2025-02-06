@@ -102,18 +102,18 @@ function M.scopes(cursor)
     return scope
 end
 
---- @return unknown
+--- @return TSNode[]
 function M.imports()
     local root = tree_root()
     if not root then
-        return nil
+        return {}
     end
 
     local buffer = vim.api.nvim_get_current_buf()
     local ok, query = pcall(vim.treesitter.query.get, vim.bo.ft, imports_query)
 
     if not ok or query == nil then
-        return nil
+        return {}
     end
 
     local imports = {}

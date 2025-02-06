@@ -9,6 +9,7 @@ local ns_id = vim.api.nvim_create_namespace("cockpit-vt")
 local VirtualText = {}
 VirtualText.__index = VirtualText
 
+--- @param buffer number
 --- @return VirtualText
 function VirtualText:new(buffer)
     return setmetatable({
