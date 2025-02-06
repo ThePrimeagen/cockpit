@@ -38,7 +38,6 @@ end
 function Point:update_to_end_of_line()
     self.col = vim.fn.col('$') + 1
     local r, c = self:to_one_zero_index()
-
     vim.api.nvim_win_set_cursor(0, {r, c})
 end
 

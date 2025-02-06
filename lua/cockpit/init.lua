@@ -52,7 +52,7 @@ function M.setup(opts)
     table.insert(ids, autocmd("BufLeave", {
         group = cockpit_group,
         pattern = '*',
-        callback = function(arg)
+        callback = function()
             vt:clear()
         end,
     }))
