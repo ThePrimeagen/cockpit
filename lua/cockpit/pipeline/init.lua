@@ -207,11 +207,14 @@ function ReadyRequestNode:run(state, done)
         local buffer = vim.uri_to_bufnr(def.uri)
         vim.fn.bufload(buffer)
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+        table.insert(lines, 1, string.format("----------- FILE START: %s ----------------", def.uri))
+        table.insert(lines, string.format("----------- FILE END: %s ----------------", def.uri))
 
         logger:debug("ReadyRequestNode loading context", "buffer", buffer, "lines", #lines)
 
         -- TODO: use treesitter to just grab function defitinions, imports, and other top level items
         local contents = table.concat(lines, "\n")
+        contents = contents:gsub("<code>", "&lt;code&gt;")
         table.insert(imported_files, contents)
     end
 
@@ -252,13 +255,22 @@ end
 function RequestNode:run(state, done)
     local context = table.concat(state.request.context, "\n")
     local content = string.format(
-        "<context>\n%s\n</context>\n<code>\n%s\n</code>\n<location>\n%s\n</location>",
+        [[------------- Context Start -----------------
+%s
+------------- Context End -----------------
+------------- Code Start -----------------
+%s
+------------- Code End -----------------
+------------- Location Start ---------------
+%s
+------------- Location End ---------------]],
         context,
         state.request.prefix,
         state.request.location
     )
     state.request.request_contents = content
 
+    logger:error(content)
     req.complete(content, function(data)
         local ok, _ = pcall(llm.openai.get_first_content, data)
         if not ok then
@@ -271,7 +283,7 @@ function RequestNode:run(state, done)
         end
 
         local response = llm.openai.get_first_content(data)
-        logger:info("RequestNode completed", "response", response)
+        logger:info("RequestNode completed", "response", vim.inspect(data))
 
         state.response = {
             start = vim.uv.now(),

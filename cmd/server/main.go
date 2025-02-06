@@ -19,6 +19,7 @@ type LlamaConfig struct {
     Threads int `json:"threads"`
     NGL int `json:"ngl"`
     NP int `json:"np"`
+    FlashAttention bool `json:"fashAttention"`
 }
 
 type ServerConfig struct {
@@ -31,7 +32,7 @@ type ServerConfig struct {
 }
 
 func (s *LlamaConfig) args(model string, port int) []string {
-    return []string{
+    out := []string{
         "--temp=0",
         "--prio", fmt.Sprintf("%d", s.Prio),
         "--threads", fmt.Sprintf("%d", s.Threads),
@@ -39,8 +40,12 @@ func (s *LlamaConfig) args(model string, port int) []string {
         "-np", fmt.Sprintf("%d", s.NP),
         "--port", fmt.Sprintf("%d", port),
         "--model", model,
-        "--flash-attn",
     }
+
+    if s.FlashAttention {
+        out = append(out, "--flash-attn")
+    }
+    return out
 }
 
 func defaultConfig() *ServerConfig {
@@ -95,7 +100,7 @@ func getConfig() *ServerConfig {
     return config
 }
 
-func launchLllamas(config *ServerConfig) ([]exec.Cmd, []int, error) {
+func launchLlamas(config *ServerConfig) ([]exec.Cmd, []int, error) {
 
     out := []exec.Cmd{}
     ports := []int{}
@@ -105,6 +110,8 @@ func launchLllamas(config *ServerConfig) ([]exec.Cmd, []int, error) {
             args := config.Config.args(config.Model, port)
             ports = append(ports, port)
             port++
+
+            fmt.Printf("starting: %s %+v\n", config.LlamaServer, args)
 
             cmd := exec.Cmd {
                 Path: config.LlamaServer,
@@ -126,7 +133,7 @@ func launchLllamas(config *ServerConfig) ([]exec.Cmd, []int, error) {
 }
 
 func main() {
-    cmds, ports, err := launchLllamas(getConfig())
+    cmds, ports, err := launchLlamas(getConfig())
     if err != nil {
         log.Fatalf("error while launching llamas: %s\n", err)
     }
@@ -149,7 +156,9 @@ func main() {
     http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         body, err := io.ReadAll(r.Body)
         if err != nil {
-            log.Fatalf("YOU GOT AN ERROR DUMMY: %s\n", err)
+            log.Fatalf("Unable to read body: %s", err)
+            w.Write([]byte("{}"))
+            return
         }
 
         var cr req.Prompt

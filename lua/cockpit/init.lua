@@ -84,7 +84,7 @@ function M.setup(opts)
                 "you should never see this unless you are deleting module caches..."
             )
         end
-        editor_state:on_key(key)
+        vim.schedule(function() editor_state:on_key(key) end)
     end, 0)
 end
 

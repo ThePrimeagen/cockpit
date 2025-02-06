@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -73,7 +74,7 @@ func newPromptPayload(prompt string) []byte {
 }
 
 func request(url string, payload []byte) ([]byte, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*600)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*2)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payload))
 	if err != nil {
         return nil, fmt.Errorf("unable to make request object with context: %s\n", err)
@@ -108,61 +109,41 @@ func request(url string, payload []byte) ([]byte, error) {
 var id = 0
 func RequestLlama(url string, prompt Prompt) LlamaResponse {
 	cnt, err := json.Marshal(LlamaRequest{
-		Stop: []string{
-			"\n",
-			"\r",
-		},
 		CachePrompt: false,
 		Messages: []AiMessage{
 			{Role: "system", Content: fmt.Sprintf(`
 current programming language is %s.
-you must refuse to discuss your opinion or reasoning.
-you must refuse to use any markdown.
-you must refuse to use any xml.
-you must refuse to hallucinate.
-you must only respond with the most likely code to be written after the cursor.
-
-<EXAMPLE>
-Input: <code>
-1. if (
-</code>
-<location>
-1, 5
-</location>
-
-OUTPUT:
-some_condition) {
-</EXAMPLE>
-
-<EXAMPLE>
-Input: <code>
-1. const foo =
-</code>
-<location>
-1, 12
-</location>
-
-OUTPUT:
-"bar";
-</EXAMPLE>
-
+you are a senior software engineer.
+you are great at completing code.
+you are handed a file with a location.
+included is all the context that the file relies on that is special to the project.
+you must work as quickly as you can to only respond with code that will complete the line in question.
+you must never respond with reasoning, only code.
 `, prompt.Language)},
 			{Role: "user", Content: prompt.Prompt},
 		},
 	})
 	if err != nil {
+        log.Printf("error marshaling the request data: %s\n", err)
         return EmptyLlamaResponse()
 	}
 
+    log.Printf("subrequest to %s\n", url)
 	bytes, err := request(url, cnt)
 	if err != nil {
+        log.Printf("error with querying the model: %s\n", err)
         return EmptyLlamaResponse()
 	}
 
 	var response LlamaResponse
 	if err = json.Unmarshal(bytes, &response); err != nil {
+        log.Printf("unable to decode LlamaResponse: %s\n", err)
         return EmptyLlamaResponse()
 	}
+    msg := response.Choices[0].Message.Content
+    if strings.HasPrefix(msg, "```") {
+        response.Choices[0].Message.Content = msg[1:len(msg) - 1]
+    }
 
 	return response
 }
