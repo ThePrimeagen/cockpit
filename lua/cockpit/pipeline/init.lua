@@ -34,11 +34,12 @@ local Point = geo.Point
 --- @field lsp PipelineStateLsp | nil
 --- @field request PipelineStateRequest | nil
 --- @field response PipelineStateResponse
+--- @field apply_virtual_text string | nil
 
 --- @class PipelineNode
 --- @field run fun(self: PipelineNode, state: any, done: InternalDone): nil
---- @field name fun(): string
---- @field on_key fun(key: string): nil
+--- @field name fun(self: PipelineNode): string
+--- @field on_key fun(self: PipelineNode, key: string): nil
 
 --- @class InitializeStateNode : PipelineNode
 --- @field vt VirtualText
@@ -178,7 +179,7 @@ function ReadyRequestNode:run(state, done)
     state.starting_line = state.cursor:get_text_line(state.buffer)
 
     local row, col = state.cursor:to_ts()
-    local prefix = llm.lang.add_line_numbers(llm.lang.prefix(state.treesitter.scopes.range[1]:to_text(), row, col))
+    local prefix = llm.lang.add_line_numbers(llm.lang.fim_prefix(state.treesitter.scopes.range[1]:to_text(), row, col))
     local imported_files = {}
 
     for _, def in ipairs(state.lsp.definitions) do
@@ -257,8 +258,33 @@ function DisplayNode:new(vt)
     }, self)
 end
 
+--- @return string | nil
+function DisplayNode:_get_remaining_virtual_text()
+    local cursor = Point:from_cursor()
+    local line = cursor:get_text_line(self.state.buffer)
+    local start = self.state.starting_line
+
+    for _, virt in ipairs(self.state.response.content) do
+        local matched = utils.get_virtual_text(line, start, virt)
+        if matched ~= nil then
+            return matched
+        end
+    end
+
+    return nil
+end
+
 --- @param key string
 function DisplayNode:on_key(key)
+    if key ~= "\t" then
+        return
+    end
+
+    local matched = self:_get_remaining_virtual_text()
+    if matched == nil then
+        self.state.apply_virtual_text = matched
+    end
+    return self.done(true)
 end
 
 function DisplayNode:name()
@@ -271,23 +297,12 @@ function DisplayNode:_display()
     assert(self.state.response ~= nil, "somehow we are displaying without a response")
     assert(#self.state.response.content > 0, "somehow we are displaying without content")
 
-    local cursor = Point:from_cursor()
-    local line = cursor:get_text_line(self.state.buffer)
-    local start = self.state.starting_line
-
-    for _, virt in ipairs(self.state.response.content) do
-        local matched = utils.get_virtual_text(line, start, virt)
-        if matched ~= nil then
-            self.vt:update(matched)
-            self.vt:render()
-        end
+    local matched = self:_get_remaining_virtual_text()
+    if matched == nil then
+        return self.done(true)
     end
-
-
-    local content = self.state.response.content[1]
-    local _, idx = utils.partial_match(line, content)
-    local r, _ = cursor:to_vim()
-
+    self.vt:update(matched)
+    self.vt:render()
 end
 
 --- @param state PipelineState
@@ -295,12 +310,38 @@ end
 function DisplayNode:run(state, done)
     if state.response == nil or #state.response.content > 0 then
         logger:debug("DisplayNode is running without a valid ending state", "state", state)
-        done(false)
+        return done(true)
     end
 
     self.done = done
     self.state = state
     self:_display()
+end
+
+--- @class ApplyVirtualTextNode : PipelineNode
+local ApplyVirtualTextNode = {}
+ApplyVirtualTextNode.__index = ApplyVirtualTextNode
+
+--- @return ApplyVirtualTextNode
+function ApplyVirtualTextNode:new() return setmetatable({ }, self) end
+function ApplyVirtualTextNode:on_key(_) end
+function ApplyVirtualTextNode:name() return "ApplyVirtualTextNode" end
+
+--- @param state PipelineState
+---@param done InternalDone
+function ApplyVirtualTextNode:run(state, done)
+    logger:debug("ApplyVirtualTextNode", "applying text", state.apply_virtual_text)
+    if state.apply_virtual_text == nil then
+        return done(false)
+    end
+
+    local cursor = Point:from_cursor()
+    local line = cursor:get_text_line(state.buffer)
+    cursor:set_text_line(state.buffer, line .. line)
+    -- todo: i think there has to be a way to make this work well
+    -- cursor:update_to_end_of_line()
+
+    return done(true)
 end
 
 --- @param pipeline Pipeline
@@ -351,6 +392,7 @@ function Pipeline:new(config)
             ReadyRequestNode:new(),
             RequestNode:new(),
             DisplayNode:new(llm.display),
+            ApplyVirtualTextNode:new(),
         },
         config = config,
         active_node = nil,
@@ -374,8 +416,7 @@ end
 function Pipeline:run(state, done)
     if self.running then
         logger:info("Pipeline: the pipeline is already running")
-        done(false, state)
-        return
+        return done(false, state)
     end
 
     self.running = true
@@ -386,6 +427,7 @@ function Pipeline:run(state, done)
         self.running = false
         self.active_state = nil
         self.active_node = nil
+        llm.display:clear()
         done(ok, s)
     end)
 end

@@ -114,8 +114,6 @@ function M.setup(opts)
 
         local final = line .. remaining_completion
         --]]
-        --cursor:set_text_line(buffer, line .. completion:sub(idx))
-        --cursor:update_to_end_of_line()
     -- end)
 
 end
