@@ -1,7 +1,4 @@
-local utils = require("cockpit.utils")
-local Point = require("cockpit.geo").Point
 local llm = require("cockpit.llm")
-local req = require("cockpit.req.req")
 local logger = require("cockpit.logger.logger")
 local config = require("cockpit.config")
 local Pipeline = require("cockpit.pipeline")
@@ -29,7 +26,7 @@ function M.setup(opts)
     initialized = true
 
     opts = vim.tbl_extend("force", config.default(), opts or {})
-    logger:file_sink("/tmp/cockpit")
+    logger:init(opts)
     logger:warn("cockpit#starting...")
 
     local editor_state = Pipeline:new(config)
@@ -45,77 +42,52 @@ function M.setup(opts)
             else
                 logger:info("pipeline finished", "res", res)
             end
-
         end)
     end
 
-    table.insert(ids, autocmd("BufLeave", {
-        group = cockpit_group,
-        pattern = '*',
-        callback = function()
-            vt:clear()
-        end,
-    }))
+    table.insert(
+        ids,
+        autocmd("BufLeave", {
+            group = cockpit_group,
+            pattern = "*",
+            callback = function()
+                vt:clear()
+            end,
+        })
+    )
 
-    table.insert(ids, autocmd("TextChangedI", {
-        group = cockpit_group,
-        pattern = '*',
-        callback = vim.schedule_wrap(run_complete),
-    }))
+    table.insert(
+        ids,
+        autocmd("TextChangedI", {
+            group = cockpit_group,
+            pattern = "*",
+            callback = vim.schedule_wrap(run_complete),
+        })
+    )
 
-    table.insert(ids, autocmd("ModeChanged", {
-        group = cockpit_group,
-        pattern = '*',
-        callback = function()
-            vt:clear()
-        end
-    }))
+    table.insert(
+        ids,
+        autocmd("ModeChanged", {
+            group = cockpit_group,
+            pattern = "*",
+            callback = function()
+                vt:clear()
+            end,
+        })
+    )
 
-    local id = __Cockpit_global_id
     __Cockpit_global_id = __Cockpit_global_id + 1
+    local id = __Cockpit_global_id
     vim.on_key(function(_, b)
         if id ~= __Cockpit_global_id then
-            error("you should never see this unless you are deleting module caches...")
+            error(
+                "you should never see this unless you are deleting module caches..."
+            )
         end
         if b == "\t" then
             print("on key tab")
         end
     end, 0)
-
-    -- vim.keymap.set("i", "<tab>", function()
-        --if current_request == nil then
-        --    return
-        --end
-
-        --local buffer = vim.api.nvim_get_current_buf()
-        --local cursor = Point:from_cursor()
-        --local line = cursor:get_text_line(buffer)
-        --local ok, idx = utils.partial_match(current_line, line)
-        --if not ok then
-        --    logger:info("insert<tab>: current line state doesn't match original request line", "current_line_state", line, "requested_line_state", current_line)
-        --    current_request = nil
-        --    return
-        --end
-
-        --local sub_match = line:sub(idx)
-        --local completion = vim.trim(llm.openai.get_first_content(current_request))
-        --local _, idx = utils.partial_match(line, completion)
-
-        --[[
-        ok, idx = utils.partial_match(sub_match, completion)
-        logger:info("insert<tab> completion match", "ok", ok, "idx", idx)
-        if not ok then
-            current_request = nil
-            return
-        end
-
-        local remaining_completion = completion:sub(idx)
-        logger:info("insert<tab> remaining ok", "remaining", remaining_completion)
-
-        local final = line .. remaining_completion
-        --]]
-    -- end)
-
 end
 
 local dc = vim.api.nvim_del_user_command

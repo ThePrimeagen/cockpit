@@ -61,23 +61,29 @@ function InitializeStateNode:on_key(_) end
 --- @param state PipelineState
 ---@param done InternalDone
 function InitializeStateNode:run(state, done)
-    logger:error("isn", "vt", self.vt)
-
     self.vt:clear()
 
     state.cursor = Point:from_cursor()
     state.starting_line = state.cursor:get_text_line(state.buffer)
-    logger:debug("InitializeStateNode", "cursor", state.cursor, "line", state.starting_line, "buffer", state.buffer)
+    logger:debug(
+        "InitializeStateNode",
+        "cursor",
+        state.cursor,
+        "line",
+        state.starting_line,
+        "buffer",
+        state.buffer
+    )
 
     if state.cursor.col <= #state.starting_line then
         logger:debug("InitializeStateNode: cursor before end of column")
-        done(false)
+        return done(false)
     elseif #vim.trim(state.starting_line) < 2 then
         logger:debug("InitializeStateNode: line too short")
-        done(false)
-    else
-        done(true)
+        return done(false)
     end
+
+    return done(true)
 end
 
 --- @class TreesitterNode : PipelineNode
@@ -105,8 +111,8 @@ function TreesitterNode:run(state, done)
         return done(false)
     end
 
-    logger:debug("scopes", "scope", scopes)
     local imports = editor.treesitter.imports()
+    logger:debug("TreesitterNode", "scope", #scopes.scope, "imports", #imports)
 
     state.treesitter = {
         scopes = scopes,
@@ -143,12 +149,16 @@ function LspNode:run(state, done)
         return done(false)
     end
 
-    self.lsp:batch_get_ts_node_definitions(state.buffer, state.treesitter.imports, function(definitions)
-        state.lsp = {
-            definitions = definitions,
-        }
-        done(true)
-    end)
+    self.lsp:batch_get_ts_node_definitions(
+        state.buffer,
+        state.treesitter.imports,
+        function(definitions)
+            state.lsp = {
+                definitions = definitions,
+            }
+            done(true)
+        end
+    )
 end
 
 --- @class ReadyRequestNode : PipelineNode
@@ -157,7 +167,7 @@ ReadyRequestNode.__index = ReadyRequestNode
 
 --- @return ReadyRequestNode
 function ReadyRequestNode:new()
-    return setmetatable({ }, self)
+    return setmetatable({}, self)
 end
 
 function ReadyRequestNode:name()
@@ -171,7 +181,9 @@ function ReadyRequestNode:on_key(_) end
 ---@param done InternalDone
 function ReadyRequestNode:run(state, done)
     if state.treesitter == nil or state.lsp == nil then
-        logger:debug("ReadyRequestNode had to exit early, no treesitter or lsp information")
+        logger:debug(
+            "ReadyRequestNode had to exit early, no treesitter or lsp information"
+        )
         return done(false)
     end
 
@@ -179,24 +191,37 @@ function ReadyRequestNode:run(state, done)
     state.starting_line = state.cursor:get_text_line(state.buffer)
 
     local row, col = state.cursor:to_ts()
-    local prefix = llm.lang.add_line_numbers(llm.lang.fim_prefix(state.treesitter.scopes.range[1]:to_text(), row, col))
+    local prefix = llm.lang.add_line_numbers(
+        llm.lang.fim_prefix(
+            state.treesitter.scopes.range[1]:to_text(),
+            row,
+            col
+        )
+    )
     local imported_files = {}
 
     for _, def in ipairs(state.lsp.definitions) do
         local buffer = vim.uri_to_bufnr(def.uri)
 
         -- TODO: use treesitter to just grab function defitinions, imports, and other top level items
-        local contents = table.concat(vim.api.nvim_get_buf_lines(buffer, 0, -1, false), "\n")
+        local contents =
+            table.concat(vim.api.nvim_get_buf_lines(buffer, 0, -1, false), "\n")
         table.insert(imported_files, contents)
     end
 
     state.request = {
         prefix = prefix,
         context = imported_files,
-        location = string.format("%d, %d\n", row, col)
+        location = string.format("%d, %d\n", row, col),
     }
 
-    logger:debug("ReadyRequestNode success with", "prefix", #state.request.prefix, "context", #state.request.context)
+    logger:debug(
+        "ReadyRequestNode success with",
+        "prefix",
+        #state.request.prefix,
+        "context",
+        #state.request.context
+    )
     return done(true)
 end
 
@@ -206,7 +231,7 @@ RequestNode.__index = RequestNode
 
 --- @return RequestNode
 function RequestNode:new()
-    return setmetatable({ }, self)
+    return setmetatable({}, self)
 end
 
 --- @param _ string
@@ -220,12 +245,21 @@ end
 ---@param done InternalDone
 function RequestNode:run(state, done)
     local context = table.concat(state.request.context)
-    local content = string.format("<context>%s</context><code>%s</code><location>%s</location>", context, state.request.prefix, state.request.location)
+    local content = string.format(
+        "<context>%s</context><code>%s</code><location>%s</location>",
+        context,
+        state.request.prefix,
+        state.request.location
+    )
 
-    req.complete(content, function (data)
+    req.complete(content, function(data)
         local ok, _ = pcall(llm.openai.get_first_content, data)
         if not ok then
-            logger:error("RequestNode code request completed but invalid format", "response", data)
+            logger:error(
+                "RequestNode code request completed but invalid format",
+                "response",
+                data
+            )
             return done(false)
         end
 
@@ -294,8 +328,14 @@ end
 function DisplayNode:_display()
     assert(self.state ~= nil, "somehow state is nil")
     assert(self.done ~= nil, "somehow done is nil")
-    assert(self.state.response ~= nil, "somehow we are displaying without a response")
-    assert(#self.state.response.content > 0, "somehow we are displaying without content")
+    assert(
+        self.state.response ~= nil,
+        "somehow we are displaying without a response"
+    )
+    assert(
+        #self.state.response.content > 0,
+        "somehow we are displaying without content"
+    )
 
     local matched = self:_get_remaining_virtual_text()
     if matched == nil then
@@ -309,7 +349,11 @@ end
 ---@param done InternalDone
 function DisplayNode:run(state, done)
     if state.response == nil or #state.response.content > 0 then
-        logger:debug("DisplayNode is running without a valid ending state", "state", state)
+        logger:debug(
+            "DisplayNode is running without a valid ending state",
+            "state",
+            state
+        )
         return done(true)
     end
 
@@ -323,14 +367,22 @@ local ApplyVirtualTextNode = {}
 ApplyVirtualTextNode.__index = ApplyVirtualTextNode
 
 --- @return ApplyVirtualTextNode
-function ApplyVirtualTextNode:new() return setmetatable({ }, self) end
+function ApplyVirtualTextNode:new()
+    return setmetatable({}, self)
+end
 function ApplyVirtualTextNode:on_key(_) end
-function ApplyVirtualTextNode:name() return "ApplyVirtualTextNode" end
+function ApplyVirtualTextNode:name()
+    return "ApplyVirtualTextNode"
+end
 
 --- @param state PipelineState
 ---@param done InternalDone
 function ApplyVirtualTextNode:run(state, done)
-    logger:debug("ApplyVirtualTextNode", "applying text", state.apply_virtual_text)
+    logger:debug(
+        "ApplyVirtualTextNode",
+        "applying text",
+        state.apply_virtual_text
+    )
     if state.apply_virtual_text == nil then
         return done(false)
     end
@@ -350,14 +402,28 @@ end
 --- @param done Done
 local function run_pipeline(pipeline, index, state, done)
     if #pipeline.nodes < index then
-        logger:debug("run_pipeline: end_state", "index", index, "count", #pipeline.nodes)
+        logger:debug(
+            "run_pipeline: end_state",
+            "index",
+            index,
+            "count",
+            #pipeline.nodes
+        )
         return done(true, state)
     end
 
     local node = pipeline.nodes[index]
     pipeline.active_node = node
 
-    logger:debug("run_pipeline", "index", index, "count", #pipeline.nodes, "name", node:name())
+    logger:debug(
+        "run_pipeline",
+        "index",
+        index,
+        "count",
+        #pipeline.nodes,
+        "name",
+        node:name()
+    )
 
     local ok, _ = pcall(node.run, node, state, function(ok)
         if not ok then
@@ -407,7 +473,10 @@ function Pipeline:on_key(key)
         return
     end
 
-    assert(self.active_state ~= nil, "cannot have an active_node without an active state")
+    assert(
+        self.active_state ~= nil,
+        "cannot have an active_node without an active state"
+    )
     self.active_node:on_key(key)
 end
 

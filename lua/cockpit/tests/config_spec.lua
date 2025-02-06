@@ -13,4 +13,3 @@ describe("config", function()
         eq(false, config.import_filtered(config.default(), file3, "typescript"))
     end)
 end)
-

@@ -1,26 +1,4 @@
-local DEBUG = -5
-local INFO = 0
-local WARN = 5
-local ERROR = 10
-local FATAL = 15
-
---- @param level number
---- @return string
-local function levelToString(level)
-    if level == DEBUG then
-        return "DEBUG"
-    elseif level == INFO then
-        return "INFO"
-    elseif level == WARN then
-        return "WARN"
-    elseif level == ERROR then
-        return "ERROR"
-    elseif level == FATAL then
-        return "FATAL"
-    end
-    assert(false, "unknown level", level)
-    return ""
-end
+local levels = require("cockpit.logger.level")
 
 --- @param ... any[]
 --- @return string
@@ -43,7 +21,7 @@ local function stringifyArgs(...)
                 value = vim.inspect(value)
             end
         elseif type(value) == "string" then
-            value = string.format("\"%s\"", value)
+            value = string.format('"%s"', value)
         else
             value = tostring(value)
         end
@@ -70,7 +48,7 @@ function FileSink:new(path)
     end
 
     return setmetatable({
-        fd = fd
+        fd = fd,
     }, self)
 end
 
@@ -103,16 +81,37 @@ end
 local Logger = {}
 Logger.__index = Logger
 
-function Logger:new()
+--- @param level number
+function Logger:new(level)
+    level = level or levels.DEBUG
     return setmetatable({
         sink = PrintSink:new(),
-        level = DEBUG,
+        level = level,
     }, self)
 end
 
+--- @param config CockpitOptions
+function Logger:init(config)
+    if config.log_level ~= nil then
+        self.level = config.log_level
+    end
+    if config.log_file_path ~= nil then
+        self:file_sink(config.log_file_path)
+    end
+end
+
 --- @param path string
+--- @return Logger
 function Logger:file_sink(path)
     self.sink = FileSink:new(path)
+    return self
+end
+
+--- @param level number
+--- @return Logger
+function Logger:set_level(level)
+    self.level = level
+    return self
 end
 
 function Logger:_log(level, msg, ...)
@@ -121,41 +120,42 @@ function Logger:_log(level, msg, ...)
     end
 
     local args = stringifyArgs(...)
-    local line = string.format("[%s]: %s %s", levelToString(level), msg, args)
+    local line =
+        string.format("[%s]: %s %s", levels.levelToString(level), msg, args)
     self.sink:write_line(line)
 end
 
 --- @param msg string
 --- @param ... any
 function Logger:info(msg, ...)
-    self:_log(INFO, msg, ...)
+    self:_log(levels.INFO, msg, ...)
 end
 
 --- @param msg string
 --- @param ... any
 function Logger:warn(msg, ...)
-    self:_log(WARN, msg, ...)
+    self:_log(levels.WARN, msg, ...)
 end
 
 --- @param msg string
 --- @param ... any
 function Logger:debug(msg, ...)
-    self:_log(DEBUG, msg, ...)
+    self:_log(levels.DEBUG, msg, ...)
 end
 
 --- @param msg string
 --- @param ... any
 function Logger:error(msg, ...)
-    self:_log(ERROR, msg, ...)
+    self:_log(levels.ERROR, msg, ...)
 end
 
 --- @param msg string
 --- @param ... any
 function Logger:fatal(msg, ...)
-    self:_log(FATAL, msg, ...)
+    self:_log(levels.FATAL, msg, ...)
     assert(false, "fatal msg recieved")
 end
 
-local module_logger = Logger:new()
+local module_logger = Logger:new(levels.DEBUG)
 
 return module_logger

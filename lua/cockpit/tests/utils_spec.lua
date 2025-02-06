@@ -11,4 +11,3 @@ describe("utils", function()
         eq(nil, utils.partial_match("if (", "if [", "true) {"))
     end)
 end)
-

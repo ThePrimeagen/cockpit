@@ -7,4 +7,3 @@ function M.get_first_content(data)
 end
 
 return M
-

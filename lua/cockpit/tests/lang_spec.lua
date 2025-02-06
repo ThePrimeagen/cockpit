@@ -8,21 +8,36 @@ describe("lang", function()
         var b = {}
     }
 }]]
-        local expected_middle = string.format([[%sclass %sFoo {
+        local expected_middle = string.format(
+            [[%sclass %sFoo {
     method() {
         var b = {}
     }
-}%s]], lang.fim_prefix, lang.fim_suffix, lang.fim_middle)
-        local expected_end = string.format([[%sclass Foo {
+}%s]],
+            lang.fim_prefix,
+            lang.fim_suffix,
+            lang.fim_middle
+        )
+        local expected_end = string.format(
+            [[%sclass Foo {
     method() {
         var b = {}
     }
-}%s%s]], lang.fim_prefix, lang.fim_suffix, lang.fim_middle)
-        local expected_start = string.format([[%sc%slass Foo {
+}%s%s]],
+            lang.fim_prefix,
+            lang.fim_suffix,
+            lang.fim_middle
+        )
+        local expected_start = string.format(
+            [[%sc%slass Foo {
     method() {
         var b = {}
     }
-}%s]], lang.fim_prefix, lang.fim_suffix, lang.fim_middle)
+}%s]],
+            lang.fim_prefix,
+            lang.fim_suffix,
+            lang.fim_middle
+        )
 
         local one = lang.fim(text, 1, 6)
         local end_ = lang.fim(text, 5, 1)
@@ -32,7 +47,4 @@ describe("lang", function()
         eq(expected_end, end_)
         eq(expected_start, start)
     end)
-
 end)
-
-

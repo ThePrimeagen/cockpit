@@ -16,7 +16,10 @@ local function decode_http(buf)
             break
         end
 
-        if #content_length < #lower and content_length == lower:sub(1, #content_length) then
+        if
+            #content_length < #lower
+            and content_length == lower:sub(1, #content_length)
+        then
             local len = tonumber(vim.trim(lower:sub(#content_length + 1)))
             if len == nil then
                 logger:error("bad request response?", "lower", lower)

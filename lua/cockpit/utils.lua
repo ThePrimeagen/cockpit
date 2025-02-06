@@ -6,7 +6,15 @@ local M = {}
 ---@param completion string
 ---@return string | nil
 function M.partial_match(start, curr, completion)
-    logger:debug("partial match", "current_line", curr, "start_line", start, "completion", completion)
+    logger:debug(
+        "partial match",
+        "current_line",
+        curr,
+        "start_line",
+        start,
+        "completion",
+        completion
+    )
     if #curr < #start then
         return nil
     end

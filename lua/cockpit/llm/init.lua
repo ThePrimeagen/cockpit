@@ -3,4 +3,3 @@ return {
     lang = require("cockpit.llm.lang"),
     display = require("cockpit.llm.display"),
 }
-

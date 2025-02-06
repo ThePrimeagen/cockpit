@@ -32,13 +32,13 @@ end
 --- @param text string
 function Point:set_text_line(buffer, text)
     local r, _ = self:to_vim()
-    vim.api.nvim_buf_set_lines(buffer, r, r + 1, false, {text})
+    vim.api.nvim_buf_set_lines(buffer, r, r + 1, false, { text })
 end
 
 function Point:update_to_end_of_line()
-    self.col = vim.fn.col('$') + 1
+    self.col = vim.fn.col("$") + 1
     local r, c = self:to_one_zero_index()
-    vim.api.nvim_win_set_cursor(0, {r, c})
+    vim.api.nvim_win_set_cursor(0, { r, c })
 end
 
 --- @param buffer number
@@ -165,7 +165,6 @@ end
 ---@param buffer number
 ---@return Range
 function Range:from_ts_node(node, buffer)
-
     -- ts is zero based
     local start_row, start_col, _ = node:start()
     local end_row, end_col, _ = node:end_()

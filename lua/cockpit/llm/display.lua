@@ -36,7 +36,15 @@ end
 ---@param row number | nil
 ---@param buffer number | nil
 function VirtualText:update(text, row, buffer)
-    logger:info("VirtualText#update", "text", text, "row", row, "buffer", buffer)
+    logger:info(
+        "VirtualText#update",
+        "text",
+        text,
+        "row",
+        row,
+        "buffer",
+        buffer
+    )
     self.text = text
     if row ~= nil then
         self.row = row

@@ -42,14 +42,17 @@ describe("range", function()
 
     it("range with scopes", function()
         vim.cmd([[:e lua/cockpit/tests/test_file.ts]])
-        local content = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, true), "\n")
+        local content =
+            table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, true), "\n")
         local scopes = ts.scopes(Point:new(1, 1))
         eq(content, scopes.range[1]:to_text())
-        eq([[class Foo {
+        eq(
+            [[class Foo {
     method() {
         var b = {}
     }
-}]], scopes.range[2]:to_text())
-
+}]],
+            scopes.range[2]:to_text()
+        )
     end)
 end)

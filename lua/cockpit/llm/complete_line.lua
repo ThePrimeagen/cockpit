@@ -1,4 +1,3 @@
-
 --- @class CompleteLine
 --- @field line string
 --- @field completion string
@@ -23,11 +22,7 @@ function CompleteLine:valid()
 end
 
 --- @param completion_line string
-function CompleteLine:set_completion(completion_line)
-end
+function CompleteLine:set_completion(completion_line) end
 
 --- @param line string
-function CompleteLine:update_line(line)
-end
-
-
+function CompleteLine:update_line(line) end

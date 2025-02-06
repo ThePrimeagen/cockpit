@@ -1,8 +1,11 @@
+local levels = require("cockpit.logger.level")
 local M = {}
 
 --- @return CockpitOptions
 function M.default()
     return {
+        log_level = levels.DEBUG,
+        log_file_path = "/tmp/cockpit",
         language_import_filter = {
             go = {
                 ".local/go",
@@ -12,8 +15,8 @@ function M.default()
             },
             javascript = {
                 "node_modules",
-            }
-        }
+            },
+        },
     }
 end
 

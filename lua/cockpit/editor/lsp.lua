@@ -14,11 +14,15 @@ local function get_lsp_definitions(buffer, position, cb)
     params.position = position
 
     --- @param result LspDefinitionResult[] | nil
-    vim.lsp.buf_request(buffer, "textDocument/definition", params, function(_, result, ctx, _)
-        cb(result)
-    end)
+    vim.lsp.buf_request(
+        buffer,
+        "textDocument/definition",
+        params,
+        function(_, result, ctx, _)
+            cb(result)
+        end
+    )
 end
-
 
 --- @class Lsp
 --- @field config CockpitOptions
@@ -27,7 +31,7 @@ Lsp.__index = Lsp
 
 function Lsp:new(config)
     return setmetatable({
-        config = config
+        config = config,
     }, self)
 end
 
@@ -51,7 +55,13 @@ function Lsp:_filter_flatten(resultsList, buffer)
         for _, res in ipairs(results) do
             local found = true
             for _, filter in ipairs(filters) do
-                logger:debug("filtering lsp definitions", "filter", filter, "uri", res.uri)
+                logger:debug(
+                    "filtering lsp definitions",
+                    "filter",
+                    filter,
+                    "uri",
+                    res.uri
+                )
                 if string.find(res.uri, filter) then
                     found = false
                     break
