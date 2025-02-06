@@ -3,24 +3,12 @@ local eq = assert.are.same
 
 describe("utils", function()
     it("partial match", function()
-        local ok, idx = utils.partial_match("foobarbaz", "arbaz buzz")
-        eq(true, ok)
-        eq(6, idx)
-
-        ok, idx = utils.partial_match("foobarbaz", "arbaz")
-        eq(true, ok)
-        eq(5, idx)
-
-        ok, idx = utils.partial_match("foobarbaz", "arbas")
-        eq(false, ok)
-
-        ok, idx = utils.partial_match("foobarbaz", "yrbas")
-        eq(false, ok)
-
-        local response = "return i;"
-        ok, idx = utils.partial_match("            ret", response)
-        eq(true, ok)
-        eq("urn i;", response:sub(idx))
+        eq("rue) {", utils.partial_match("if (", "if (t", "true) {"))
+        eq(") {", utils.partial_match("if (", "if (true", "true) {"))
+        eq("", utils.partial_match("if (", "if (true) {", "true) {"))
+        eq(nil, utils.partial_match("if (", "if ", "true) {"))
+        eq(nil, utils.partial_match("if (", "if (f", "true) {"))
+        eq(nil, utils.partial_match("if (", "if [", "true) {"))
     end)
 end)
 

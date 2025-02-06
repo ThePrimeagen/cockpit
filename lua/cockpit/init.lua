@@ -16,6 +16,7 @@ local ids = {}
 
 local vt = llm.display
 local initialized = false
+__Cockpit_global_id = 0
 
 --- @param opts CockpitOptions
 function M.setup(opts)
@@ -24,13 +25,12 @@ function M.setup(opts)
         logger:warn("everything has been setup already")
         return
     end
-    print("running")
 
     initialized = true
 
     opts = vim.tbl_extend("force", config.default(), opts or {})
     logger:file_sink("/tmp/cockpit")
-    logger:warn("cockpit#setup")
+    logger:warn("cockpit#starting...")
 
     local editor_state = Pipeline:new(config)
 
@@ -71,7 +71,18 @@ function M.setup(opts)
         end
     }))
 
-    vim.keymap.set("i", "<tab>", function()
+    local id = __Cockpit_global_id
+    __Cockpit_global_id = __Cockpit_global_id + 1
+    vim.on_key(function(_, b)
+        if id ~= __Cockpit_global_id then
+            error("you should never see this unless you are deleting module caches...")
+        end
+        if b == "\t" then
+            print("on key tab")
+        end
+    end, 0)
+
+    -- vim.keymap.set("i", "<tab>", function()
         --if current_request == nil then
         --    return
         --end
@@ -105,14 +116,13 @@ function M.setup(opts)
         --]]
         --cursor:set_text_line(buffer, line .. completion:sub(idx))
         --cursor:update_to_end_of_line()
-    end)
+    -- end)
 
 end
 
 local dc = vim.api.nvim_del_user_command
 function M.cockpit_refresh()
     vt:clear()
-    pcall(vim.api.nvim_del_keymap, "i", "<tab>")
 
     for _, id in ipairs(ids) do
         del_autocmd(id)

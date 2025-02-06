@@ -1,39 +1,34 @@
 local logger = require("cockpit.logger.logger")
 local M = {}
 
---- @param str string
---- @param partial string
---- @return boolean, number
-function M.partial_match(str, partial)
-    -- TODO: this doesn't work with utf8 maybe...
-    logger:info("partial_match", "str-len", #str, "str", str, "partial-len", #partial, "partial", partial)
-    for i = 1, #str do
-        local curr = str:byte(i, i)
-        local first = partial:byte(1, 1)
-
-        local found = true
-        if curr == first then
-            for j = 1, #partial - 1 do
-                if not found then
-                    break
-                end
-
-                if i + j > #str then
-                    return true, j + 1
-                end
-
-                local expected = str:byte(i + j, i + j)
-                local received = partial:byte(j + 1, j + 1)
-                found = expected == received
-            end
-
-            if found then
-                return true, #partial
-            end
-        end
+---@param start string
+---@param curr string
+---@param completion string
+---@return string | nil
+function M.partial_match(start, curr, completion)
+    logger:debug("partial match", "current_line", curr, "start_line", start, "completion", completion)
+    if #curr < #start then
+        return nil
     end
 
-    return false, 1
+    if start ~= curr:sub(1, #start) then
+        return nil
+    end
+
+    local remaining = curr:sub(#start + 1)
+    if #remaining == 0 then
+        return completion
+    end
+
+    if #completion < #remaining then
+        return nil
+    end
+
+    local sub_completion = completion:sub(1, #remaining)
+    if remaining == sub_completion then
+        return completion:sub(#remaining + 1)
+    end
+    return nil
 end
 
 return M

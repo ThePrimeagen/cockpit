@@ -8,9 +8,9 @@ local function fill(str, len)
     return string.rep(" ", len - #str) .. str
 end
 
-M.prefix = "<|fim_prefix|>"
-M.suffix = "<|fim_suffix|>"
-M.mid = "<|fim_middle|>"
+M.fim_prefix = "<|fim_prefix|>"
+M.fim_suffix = "<|fim_suffix|>"
+M.fim_middle = "<|fim_middle|>"
 
 function M.add_line_numbers(text)
     local lines = vim.split(text, "\n")
@@ -65,7 +65,7 @@ function M.fim(text, row, col)
     local prefix = M.prefix(text, row, col)
     local suffix = M.suffix(text, row, col)
 
-    return M.prefix .. prefix .. M.suffix .. suffix .. M.mid
+    return M.fim_prefix .. prefix .. M.fim_suffix .. suffix .. M.fim_middle
 end
 
 return M

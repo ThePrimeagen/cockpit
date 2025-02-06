@@ -38,6 +38,7 @@ local Point = geo.Point
 --- @class PipelineNode
 --- @field run fun(self: PipelineNode, state: any, done: InternalDone): nil
 --- @field name fun(): string
+--- @field on_key fun(key: string): nil
 
 --- @class InitializeStateNode : PipelineNode
 --- @field vt VirtualText
@@ -52,6 +53,9 @@ end
 function InitializeStateNode:name()
     return "InitializeStateNode"
 end
+
+--- @param _ string
+function InitializeStateNode:on_key(_) end
 
 --- @param state PipelineState
 ---@param done InternalDone
@@ -83,6 +87,9 @@ TreesitterNode.__index = TreesitterNode
 function TreesitterNode:new()
     return setmetatable({}, self)
 end
+
+--- @param _ string
+function TreesitterNode:on_key(_) end
 
 function TreesitterNode:name()
     return "TreesitterNode"
@@ -120,6 +127,9 @@ function LspNode:new(config)
     }, self)
 end
 
+--- @param _ string
+function LspNode:on_key(_) end
+
 function LspNode:name()
     return "LspNode"
 end
@@ -152,6 +162,9 @@ end
 function ReadyRequestNode:name()
     return "ReadyRequestNode"
 end
+
+--- @param _ string
+function ReadyRequestNode:on_key(_) end
 
 --- @param state PipelineState
 ---@param done InternalDone
@@ -194,6 +207,9 @@ RequestNode.__index = RequestNode
 function RequestNode:new()
     return setmetatable({ }, self)
 end
+
+--- @param _ string
+function RequestNode:on_key(_) end
 
 function RequestNode:name()
     return "RequestNode"
@@ -241,6 +257,10 @@ function DisplayNode:new(vt)
     }, self)
 end
 
+--- @param key string
+function DisplayNode:on_key(key)
+end
+
 function DisplayNode:name()
     return "DisplayNode"
 end
@@ -253,12 +273,21 @@ function DisplayNode:_display()
 
     local cursor = Point:from_cursor()
     local line = cursor:get_text_line(self.state.buffer)
+    local start = self.state.starting_line
+
+    for _, virt in ipairs(self.state.response.content) do
+        local matched = utils.get_virtual_text(line, start, virt)
+        if matched ~= nil then
+            self.vt:update(matched)
+            self.vt:render()
+        end
+    end
+
+
     local content = self.state.response.content[1]
     local _, idx = utils.partial_match(line, content)
     local r, _ = cursor:to_vim()
 
-    self.vt:update(content:sub(idx), r, self.state.buffer)
-    self.vt:render()
 end
 
 --- @param state PipelineState
@@ -279,14 +308,15 @@ end
 --- @param state any
 --- @param done Done
 local function run_pipeline(pipeline, index, state, done)
-    logger:debug("run_pipeline", "index", index, "count", #pipeline.nodes)
     if #pipeline.nodes < index then
         logger:debug("run_pipeline: end_state", "index", index, "count", #pipeline.nodes)
         return done(true, state)
     end
 
     local node = pipeline.nodes[index]
-    logger:debug("run_pipeline", "name", node:name())
+    pipeline.active_node = node
+
+    logger:debug("run_pipeline", "index", index, "count", #pipeline.nodes, "name", node:name())
 
     local ok, _ = pcall(node.run, node, state, function(ok)
         if not ok then
@@ -304,6 +334,8 @@ end
 --- @class Pipeline
 --- @field vt VirtualText
 --- @field nodes PipelineNode[]
+--- @field active_node PipelineNode | nil
+--- @field active_state PipelineState | nil
 --- @field running boolean
 --- @field config CockpitOptions
 local Pipeline = {}
@@ -321,8 +353,20 @@ function Pipeline:new(config)
             DisplayNode:new(llm.display),
         },
         config = config,
+        active_node = nil,
+        active_state = nil,
         running = false,
     }, self)
+end
+
+--- @param key string
+function Pipeline:on_key(key)
+    if self.active_node == nil then
+        return
+    end
+
+    assert(self.active_state ~= nil, "cannot have an active_node without an active state")
+    self.active_node:on_key(key)
 end
 
 --- @param state PipelineState
@@ -335,9 +379,13 @@ function Pipeline:run(state, done)
     end
 
     self.running = true
+    self.active_state = state
+
     logger:debug("Pipeline: run_pipeline")
     run_pipeline(self, 1, state, function(ok, s)
         self.running = false
+        self.active_state = nil
+        self.active_node = nil
         done(ok, s)
     end)
 end
