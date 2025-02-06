@@ -133,7 +133,7 @@ func launchLlamas(config *ServerConfig) ([]exec.Cmd, []int, error) {
 }
 
 func main() {
-    cmds, ports, err := launchLlamas(getConfig())
+    cmds, _, err := launchLlamas(getConfig())
     if err != nil {
         log.Fatalf("error while launching llamas: %s\n", err)
     }
@@ -152,7 +152,7 @@ func main() {
         }()
     }
 
-    id := 0
+    //id := 0
     http.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         body, err := io.ReadAll(r.Body)
         if err != nil {
@@ -167,9 +167,10 @@ func main() {
             log.Fatalf("YOU GOT AN ERROR DUMMY BECAUSE YOU DUMB: %s\n", err)
         }
 
-        id++
-        p := ports[id % len(ports)]
-        url := fmt.Sprintf("http://localhost:%d/v1/chat/completions", p)
+        //id++
+        //p := ports[id % len(ports)]
+        //url := fmt.Sprintf("http://localhost:%d/v1/chat/completions", p)
+        url := "http://localhost:8080/v1/chat/completions"
 
         data := req.RequestLlama(url, cr)
         w.Write(data.Bytes())

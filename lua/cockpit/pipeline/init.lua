@@ -253,20 +253,11 @@ end
 --- @param state PipelineState
 ---@param done InternalDone
 function RequestNode:run(state, done)
-    local context = table.concat(state.request.context, "\n")
+    local _ = table.concat(state.request.context, "\n")
     local content = string.format(
-        [[------------- Context Start -----------------
-%s
-------------- Context End -----------------
-------------- Code Start -----------------
-%s
-------------- Code End -----------------
-------------- Location Start ---------------
-%s
-------------- Location End ---------------]],
-        context,
-        state.request.prefix,
-        state.request.location
+        [[Hey Sr. Software Engineer, I really need your help!!  Here is my code, what should come next?? HELP! I need help so bad!:
+%s]],
+        state.request.prefix
     )
     state.request.request_contents = content
 
