@@ -128,11 +128,11 @@ end
 local LspNode = {}
 LspNode.__index = LspNode
 
---- @param config CockpitOptions
+--- @param opts CockpitOptions
 --- @return LspNode
-function LspNode:new(config)
+function LspNode:new(opts)
     return setmetatable({
-        lsp = editor.lsp.Lsp:new(config),
+        lsp = editor.lsp.Lsp:new(opts),
     }, self)
 end
 
@@ -155,6 +155,7 @@ function LspNode:run(state, done)
         state.buffer,
         state.treesitter.imports,
         function(definitions)
+            logger:debug("LspNode#run finished", "definitions", #definitions)
             state.lsp = {
                 definitions = definitions,
             }
@@ -192,9 +193,9 @@ function ReadyRequestNode:run(state, done)
     state.cursor = Point:from_cursor()
     state.starting_line = state.cursor:get_text_line(state.buffer)
 
-    local row, col = state.cursor:to_ts()
+    local row, col = state.cursor:to_lua()
     local prefix = llm.lang.add_line_numbers(
-        llm.lang.fim_prefix(
+        llm.lang.prefix(
             state.treesitter.scopes.range[1]:to_text(),
             row,
             col
@@ -204,10 +205,13 @@ function ReadyRequestNode:run(state, done)
 
     for _, def in ipairs(state.lsp.definitions) do
         local buffer = vim.uri_to_bufnr(def.uri)
+        vim.fn.bufload(buffer)
+        local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+
+        logger:debug("ReadyRequestNode loading context", "buffer", buffer, "lines", #lines)
 
         -- TODO: use treesitter to just grab function defitinions, imports, and other top level items
-        local contents =
-            table.concat(vim.api.nvim_get_buf_lines(buffer, 0, -1, false), "\n")
+        local contents = table.concat(lines, "\n")
         table.insert(imported_files, contents)
     end
 
@@ -246,9 +250,9 @@ end
 --- @param state PipelineState
 ---@param done InternalDone
 function RequestNode:run(state, done)
-    local context = table.concat(state.request.context)
+    local context = table.concat(state.request.context, "\n")
     local content = string.format(
-        "<context>%s</context><code>%s</code><location>%s</location>",
+        "<context>\n%s\n</context>\n<code>\n%s\n</code>\n<location>\n%s\n</location>",
         context,
         state.request.prefix,
         state.request.location
@@ -302,18 +306,21 @@ function DisplayNode:_get_remaining_virtual_text()
     local start = self.state.starting_line
 
     for _, virt in ipairs(self.state.response.content) do
-        local matched = utils.get_virtual_text(line, start, virt)
+        local matched = utils.partial_match(start, line, virt)
         if matched ~= nil then
+            logger:debug("_get_remaining_virtual_text", "matched", matched)
             return matched
         end
     end
 
+    logger:debug("_get_remaining_virtual_text did not match anything")
     return nil
 end
 
 --- @param key string
 function DisplayNode:on_key(key)
     if key ~= "\t" then
+        self:_display()
         return
     end
 
@@ -344,14 +351,17 @@ function DisplayNode:_display()
     if matched == nil then
         return self.done(true)
     end
-    self.vt:update(matched)
+
+    local r, _ = Point:from_cursor():to_vim()
+    self.vt:clear()
+    self.vt:update(matched, r, self.state.buffer)
     self.vt:render()
 end
 
 --- @param state PipelineState
 ---@param done InternalDone
 function DisplayNode:run(state, done)
-    if state.response == nil or #state.response.content > 0 then
+    if state.response == nil or #state.response.content == 0 then
         logger:debug(
             "DisplayNode is running without a valid ending state",
             "state",
@@ -465,7 +475,7 @@ local function run_pipeline(pipeline, index, state, done)
         node:name()
     )
 
-    local ok, _ = pcall(node.run, node, state, function(ok)
+    local ok, res, err = pcall(node.run, node, state, function(ok)
         if not ok then
             return done(false, state)
         else
@@ -473,7 +483,9 @@ local function run_pipeline(pipeline, index, state, done)
         end
     end)
 
+
     if not ok then
+        logger:error("error calling node.run", "err", err, "res", res)
         return done(false, state)
     end
 end

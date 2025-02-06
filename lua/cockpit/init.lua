@@ -29,7 +29,7 @@ function M.setup(opts)
     logger:init(opts)
     logger:warn("cockpit#starting...")
 
-    local editor_state = Pipeline:new(config)
+    local editor_state = Pipeline:new(opts)
 
     --- @param arg TextChangedIEvent
     local function run_complete(arg)
@@ -78,15 +78,13 @@ function M.setup(opts)
 
     __Cockpit_global_id = __Cockpit_global_id + 1
     local id = __Cockpit_global_id
-    vim.on_key(function(_, b)
+    vim.on_key(function(_, key)
         if id ~= __Cockpit_global_id then
             error(
                 "you should never see this unless you are deleting module caches..."
             )
         end
-        if b == "\t" then
-            print("on key tab")
-        end
+        editor_state:on_key(key)
     end, 0)
 end
 

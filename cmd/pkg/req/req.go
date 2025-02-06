@@ -11,6 +11,9 @@ import (
 	"time"
 )
 
+// lama
+
+
 type Prompt struct {
 	Prompt   string `json:"prompt"`
 	Language string `json:"language"`
@@ -47,6 +50,16 @@ type LlamaResponse struct {
 	Timings LlamaTimings          `json:"timings"`
 }
 
+func EmptyLlamaResponse() LlamaResponse {
+    return LlamaResponse{
+        Choices: []LlamaChoiceResponse{},
+        Timings: LlamaTimings{
+            PromptMS: 0,
+            PredictedMS: 0,
+        },
+    }
+}
+
 func (l *LlamaResponse) Bytes() []byte {
 	bytes, _ := json.Marshal(l)
 	return bytes
@@ -60,10 +73,10 @@ func newPromptPayload(prompt string) []byte {
 }
 
 func request(url string, payload []byte) ([]byte, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*600)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		log.Fatalf("unable to make request object with context: %s\n", err)
+        return nil, fmt.Errorf("unable to make request object with context: %s\n", err)
 	}
 
 	// Set the necessary headers
@@ -73,26 +86,27 @@ func request(url string, payload []byte) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("unable to make client request: %s\n", err)
+        return nil, fmt.Errorf("unable to make client request: %s\n", err)
+
 	}
 	defer resp.Body.Close()
 
 	// Check for a successful response
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("bad status code: %d\n", resp.StatusCode)
+        return nil, fmt.Errorf("bad status code: %d\n", resp.StatusCode)
 	}
 
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalf("unable to read the body data: %s\n", err)
+        return nil, fmt.Errorf("unable to read the body data: %s\n", err)
 	}
 
 	return body, nil
 }
 
-func RequestLlama(prompt Prompt) LlamaResponse {
-    log.Printf("llama request: language=%s\n", prompt.Language)
+var id = 0
+func RequestLlama(url string, prompt Prompt) LlamaResponse {
 	cnt, err := json.Marshal(LlamaRequest{
 		Stop: []string{
 			"\n",
@@ -137,18 +151,17 @@ OUTPUT:
 		},
 	})
 	if err != nil {
-		log.Fatalf("unable to make request: %s\n", err)
+        return EmptyLlamaResponse()
 	}
 
-	bytes, err := request("http://localhost:8080/v1/chat/completions", cnt)
+	bytes, err := request(url, cnt)
 	if err != nil {
-		log.Fatalf("bad request to llama chat completions", err)
+        return EmptyLlamaResponse()
 	}
 
-	log.Printf("response: %s\n", string(bytes))
 	var response LlamaResponse
 	if err = json.Unmarshal(bytes, &response); err != nil {
-		log.Fatalf("unable to unmarshal llama response: %s", err)
+        return EmptyLlamaResponse()
 	}
 
 	return response

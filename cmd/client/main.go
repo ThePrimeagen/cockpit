@@ -1,93 +1,111 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"math/rand/v2"
+	"os"
+	"path"
+	"sync"
 
 	"theprimeagen.tv/cmd/pkg/req"
 )
 
-var requests = []string{
-`context:
-1.  function foo(in_arr) {
-2.      const bar = in_arr.map(x => x + 1)
-3.      for
+type Stat struct {
+    Prompt float64
+    Predict float64
+    Count int
+}
 
-location: 3, 7
-`,
-`context:
-1.  function printValues(obj) {
-2.      for (const key in obj) {
-3.
+func (s *Stat) Print() {
+    fmt.Printf("Prompt\n")
+    fmt.Printf("Total(%f): %f\n", s.Prompt / float64(s.Count), s.Prompt)
+    fmt.Printf("Predict\n")
+    fmt.Printf("Total(%f): %f\n", s.Predict / float64(s.Count), s.Predict)
+    fmt.Printf("Total\n")
+    fmt.Printf("Total(%f): %f\n", (s.Predict + s.Prompt) / float64(s.Count), s.Predict + s.Prompt)
+}
 
-location: 3, 11
-`,
+func readAllFiles() []string {
+    out := []string{}
 
-`context:
-1.  class Person {
-2.      constructor(name, age) {
-3.          this.name = name;
-4.          this.age = age;
-5.      }
-6.
-7.      greet() {
-8.
+    entries, err := os.ReadDir("./data")
+    if err != nil {
+        log.Fatalf("error: %s", err)
+    }
 
-location: 8, 7
-`,
+    for _, entry := range entries {
+        if !entry.Type().IsRegular() {
+            continue
+        }
+        wd, err := os.Getwd()
+        if err != nil {
+            log.Fatalf("error: %s", err)
+        }
+        p := path.Join(wd, "data", entry.Name())
+        contents, err := os.ReadFile(p)
+        if err != nil {
+            log.Fatalf("error: %s", err)
+        }
+        out = append(out, string(contents))
+    }
 
-`context:
-1.  async function getData(url) {
-2.      try {
-3.          const response = await fetch(url);
-4.
+    return out
+}
 
-location: 4, 11
-`,
+func request(count int, ch chan struct{}, wait *sync.WaitGroup, stats *Stat, files []string) {
+    mutex := sync.Mutex{}
+    for i := range count {
+        go func() {
+            idx := rand.Int() % len(files)
+            r := files[idx]
 
-`context:
-1.  const express = require('express');
-2.  const app = express();
-3.
-4.  app.get('/users', async (req, res) => {
-5.
+            <-ch
+            out, err := req.ClientRequest(r)
+            if err != nil {
+                fmt.Printf("Error %s\nskipping request %d: %s\n", err, i, r)
+                ch <- struct{}{}
+                return
+            }
 
-location: 5, 7
-`,
 
-`context:
-1.  function Counter() {
-2.      const [count, setCount] = useState(0);
-3.
-4.      return (
-5.          <button onClick={() =>
+            ch <- struct{}{}
 
-location: 5, 28`,
+            mutex.Lock()
+            stats.Prompt += out.Timings.PromptMS
+            stats.Predict += out.Timings.PredictedMS
+            stats.Count += 1
+            mutex.Unlock()
+            wait.Done()
 
+            fmt.Printf("finished: %d\n", i)
+        }()
+    }
 }
 
 func main() {
-    sumPrompt := 0.0
-    sumPredict := 0.0
-    count := 0
-    for i, r := range requests {
-        out, err := req.ClientRequest(r)
-        if err != nil {
-            fmt.Printf("Error %s\nskipping request %d: %s\n", err, i, r)
-            continue
-        }
+    var concurrent int
+    var completionRequests int
+    flag.IntVar(&concurrent, "q", 1, "the amount of concurrent autocomplete requests")
+    flag.IntVar(&completionRequests, "c", 1000, "the amount of completion requests to make")
+    flag.Parse()
 
-        count++
-        sumPrompt += out.Timings.PromptMS
-        sumPredict += out.Timings.PredictedMS
-
-        fmt.Printf("in: %s\nout: %s\n", r, out.Choices[0].Message.Content)
+    files := readAllFiles()
+    wait := sync.WaitGroup{}
+    wait.Add(completionRequests)
+    makeRequest := make(chan struct{}, concurrent)
+    for range concurrent {
+        makeRequest <- struct{}{}
     }
 
-    fmt.Printf("Prompt\n")
-    fmt.Printf("Total(%f): %f\n", sumPrompt / float64(count), sumPrompt)
-    fmt.Printf("Predict\n")
-    fmt.Printf("Total(%f): %f\n", sumPredict / float64(count), sumPredict)
-    fmt.Printf("Total\n")
-    fmt.Printf("Total(%f): %f\n", (sumPredict + sumPrompt) / float64(count), sumPredict + sumPrompt)
+    stats := &Stat{}
+
+    go request(completionRequests, makeRequest, &wait, stats, files)
+    wait.Wait()
+
+    defer close(makeRequest)
+
+    stats.Print()
 }
 

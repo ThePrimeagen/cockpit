@@ -1,0 +1,99 @@
+<context>
+
+</context>
+<code>
+ 1.package args
+ 2.
+ 3.import (
+ 4.	"encoding/json"
+ 5.	"github.com/joho/godotenv"
+ 6.	"log/slog"
+ 7.	"os"
+ 8.	"strconv"
+ 9.)
+10.
+11.func getArgInt(name string, d int) int {
+12.	out := d
+13.	if os.Getenv(name) != "" {
+14.		arg := os.Getenv(name)
+15.		argInt, err := strconv.Atoi(arg)
+16.		if err != nil {
+17.			return out
+18.		}
+19.		out = argInt
+20.	}
+21.	return out
+22.}
+23.
+24.func getArg(name string, d string) string {
+25.	out := d
+26.	if os.Getenv(name) != "" {
+27.		out = os.Getenv(name)
+28.	}
+29.	return out
+30.}
+31.
+32.type TwitchFrequencyConfig struct {
+33.	FreqWindowSeconds int `json:"freq_window_seconds"`
+34.	BucketCount       int `json:"bucket_count"`
+35.	MaxWordCount      int `json:"max_word_count"`
+36.}
+37.
+38.type TwitchServiceType string
+39.
+40.const (
+41.	Service TwitchServiceType = "service"
+42.	Gateway TwitchServiceType = "gateway"
+43.	File    TwitchServiceType = "file"
+44.)
+45.
+46.type TwitchGatewayConfig struct {
+47.	Port int    `json:"port"`
+48.	Host string `json:"host"`
+49.}
+50.
+51.type TwitchFileConfig struct {
+52.	Path    string `json:"path"`
+53.	Content string `json:"content"`
+54.}
+55.
+56.type TwitchServiceConfig struct{}
+57.
+58.type TwitchConfigParam struct {
+59.	Type    TwitchServiceType    `json:"type"`
+60.	Service *TwitchServiceConfig `json:"service"`
+61.	File    *TwitchFileConfig    `json:"file"`
+62.	Gateway *TwitchGatewayConfig `json:"gateway"`
+63.}
+64.type TwitchConfig struct {
+65.	Channel string            `json:"channel"`
+66.	Params  TwitchConfigParam `json:"params"`
+67.	Debug   bool              `json:"debug"`
+68.}
+69.
+70.type ServerConfig struct {
+71.	Twitch         []TwitchConfig          `json:"twitch"`
+72.	BitStoragePath string                  `json:"bit_storage_path"`
+73.	BitStorage     bool                    `json:"bit_storage"`
+74.	Frequency      []TwitchFrequencyConfig `json:"frequency"`
+75.	Port           uint16                  `json:"port"`
+76.	Assets         bool                    `json:"assets"`
+77.	Debug          bool                    `json:"debug"`
+78.}
+79.
+80.func (s *ServerConfig) Extend(other *ServerConfig) *ServerConfig {
+81.	if other.Twitch != nil {
+82.		s.Twitch = other.Twitch
+83.	}
+84.	return s
+85.}
+86.
+87.func defaultConfig() *ServerConfig {
+88.	return &ServerConfig{
+89.		Twitch:         []TwitchConfig{},
+90.		Freq    
+</code>
+<location>
+90, 11
+
+</location>

@@ -1,0 +1,154 @@
+<context>
+package msg
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type MsgKind string
+const (
+    TwitchChat MsgKind = "twitch-msg"
+    TwitchFreq MsgKind = "twitch-freq"
+)
+
+type ServerAction struct {
+    Type MsgKind
+    Original []byte
+}
+
+type TypedAction struct {
+    Type MsgKind `json:"type"`
+    Data interface{} `json:"data"`
+}
+
+func (t *TypedAction) Kind() MsgKind {
+    return t.Type
+}
+
+func (s *ServerAction) Kind() MsgKind {
+    return s.Type
+}
+
+type Msg interface {
+    Kind() MsgKind
+}
+
+type Relay interface {
+    Msg(Msg)
+}
+
+type Interceptor interface {
+    Filter(Msg) bool
+    Act(Msg)
+    Done() bool
+}
+
+func CreateMsg(t MsgKind, data interface{}) Msg {
+    return &TypedAction{
+        Type: t,
+        Data: data,
+    }
+}
+
+func MsgTo[T any](msg Msg) (*T, error) {
+    if T, ok := msg.(T); ok {
+        return &T, nil
+    }
+
+    // Handle if msg is a pointer to the desired type
+    if t, ok := any(msg).(*T); ok {
+        return t, nil
+    }
+
+    if action, ok := msg.(*ServerAction); ok {
+        var out struct {
+            Data T
+        }
+        err := json.Unmarshal(action.Original, &out)
+        if err != nil {
+            return nil, err
+        }
+        return &out.Data, nil
+    }
+
+    if typed, ok := msg.(*TypedAction); ok {
+        if data, ok := typed.Data.(T); ok {
+            return &data, nil
+        } else if data, ok := typed.Data.(*T); ok {
+            return data, nil
+        }
+    }
+
+    return nil, fmt.Errorf("not that type")
+}
+
+</context>
+<code>
+ 1.package relay
+ 2.
+ 3.import (
+ 4.	"slices"
+ 5.	"sync"
+ 6.
+ 7.	"theprimeagen.tv/pkg/v2/msg"
+ 8.)
+ 9.
+10.type IRelay interface {
+11.	Push(m msg.Msg)
+12.	AddInterceptor(interceptor Interceptor)
+13.}
+14.
+15.type Interceptor interface {
+16.	Start(r IRelay)
+17.	Close()
+18.	Filter(msg msg.Msg) bool
+19.	Act(msg msg.Msg)
+20.	Done() bool
+21.}
+22.
+23.type Relay struct {
+24.	filters []Interceptor
+25.	mutex   sync.Mutex
+26.	ch      chan msg.Msg
+27.}
+28.
+29.func NewRelay() *Relay {
+30.	return &Relay{
+31.		filters: []Interceptor{},
+32.		mutex:   sync.Mutex{},
+33.        ch: make(chan msg.Msg, 100),
+34.	}
+35.}
+36.
+37.func (r *Relay) Start() {
+38.    for msg := range r.ch {
+39.        r.mutex.Lock()
+40.        removes := []int{}
+41.        for i, f := range r.filters {
+42.            if f.Filter(msg) {
+43.                f.Act(msg)
+44.            }
+45.            if f.Done() {
+46.                removes = append(removes, i)
+47.            }
+48.        }
+49.        slices.Reverse(removes)
+50.        for _, i := range removes {
+51.            r.filters[i].Close()
+52.            r.filters = append(r.filters[:i], r.filters[i+1:]...)
+53.        }
+54.        r.mutex.Unlock()
+55.    }
+56.}
+57.
+58.func (r *Relay) Push(msg msg.Msg) {
+59.    r.ch <- msg
+60.}
+61.
+62.fu
+</code>
+<location>
+62, 3
+
+</location>

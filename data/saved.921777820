@@ -1,0 +1,159 @@
+<context>
+
+</context>
+<code>
+  1.package args
+  2.
+  3.import (
+  4.	"encoding/json"
+  5.	"log/slog"
+  6.	"os"
+  7.	"slices"
+  8.	"strconv"
+  9.
+ 10.	"github.com/joho/godotenv"
+ 11.)
+ 12.
+ 13.func getArgInt(name string, d int) int {
+ 14.	out := d
+ 15.	if os.Getenv(name) != "" {
+ 16.		arg := os.Getenv(name)
+ 17.		argInt, err := strconv.Atoi(arg)
+ 18.		if err != nil {
+ 19.			return out
+ 20.		}
+ 21.		out = argInt
+ 22.	}
+ 23.	return out
+ 24.}
+ 25.
+ 26.func getArg(name string, d string) string {
+ 27.	out := d
+ 28.	if os.Getenv(name) != "" {
+ 29.		out = os.Getenv(name)
+ 30.	}
+ 31.	return out
+ 32.}
+ 33.
+ 34.type TwitchFrequencyConfig struct {
+ 35.	FreqWindowSeconds int `json:"freq_window_seconds"`
+ 36.	BucketCount       int `json:"bucket_count"`
+ 37.	MaxWordCount      int `json:"max_word_count"`
+ 38.}
+ 39.
+ 40.type TwitchServiceType string
+ 41.
+ 42.const (
+ 43.	Service TwitchServiceType = "service"
+ 44.	Gateway TwitchServiceType = "gateway"
+ 45.	File    TwitchServiceType = "file"
+ 46.)
+ 47.
+ 48.type TwitchGatewayConfig struct {
+ 49.	Port int    `json:"port"`
+ 50.	Host string `json:"host"`
+ 51.}
+ 52.
+ 53.type TwitchFileConfig struct {
+ 54.	Path    string `json:"path"`
+ 55.	Content string `json:"content"`
+ 56.}
+ 57.
+ 58.type TwitchServiceConfig struct{}
+ 59.
+ 60.type TwitchConfigParam struct {
+ 61.	Type    TwitchServiceType    `json:"type"`
+ 62.	Service *TwitchServiceConfig `json:"service"`
+ 63.	File    *TwitchFileConfig    `json:"file"`
+ 64.	Gateway *TwitchGatewayConfig `json:"gateway"`
+ 65.}
+ 66.type TwitchConfig struct {
+ 67.	Channel string            `json:"channel"`
+ 68.	Params  TwitchConfigParam `json:"params"`
+ 69.	Debug   bool              `json:"debug"`
+ 70.}
+ 71.
+ 72.type ServerConfig struct {
+ 73.	Twitch         *[]TwitchConfig          `json:"twitch"`
+ 74.	BitStoragePath string                  `json:"bit_storage_path"`
+ 75.	BitStorage     bool                    `json:"bit_storage"`
+ 76.	Frequency      *[]TwitchFrequencyConfig `json:"frequency"`
+ 77.	Port           uint16                  `json:"port"`
+ 78.	Assets         bool                    `json:"assets"`
+ 79.	Debug          bool                    `json:"debug"`
+ 80.}
+ 81.
+ 82.func (s *ServerConfig) Extend(other *ServerConfig) *ServerConfig {
+ 83.	if other.Twitch != nil {
+ 84.		s.Twitch = other.Twitch
+ 85.	}
+ 86.	return s
+ 87.}
+ 88.
+ 89.func defaultConfig() *ServerConfig {
+ 90.	return &ServerConfig{
+ 91.		Twitch:         &[]TwitchConfig{},
+ 92.		Frequency:      &[]TwitchFrequencyConfig{},
+ 93.		BitStoragePath: "./bits.json",
+ 94.		Assets:         true,
+ 95.	}
+ 96.}
+ 97.
+ 98.func fromFile(path string) *ServerConfig {
+ 99.	contents, err := os.ReadFile(path)
+100.	if err != nil {
+101.		slog.Error("unable to read file", "path", path, "error", err)
+102.		return defaultConfig()
+103.	}
+104.	var conf ServerConfig
+105.	err = json.Unmarshal(contents, &conf)
+106.	if err != nil {
+107.		slog.Error("unable to decode json", "path", path, "error", err)
+108.		return defaultConfig()
+109.	}
+110.	return &conf
+111.}
+112.
+113.func getPort(config *ServerConfig) uint16 {
+114.	var port uint16 = 42069
+115.	var err error
+116.
+117.	if config.Port != 0 {
+118.		port = config.Port
+119.	}
+120.
+121.	portStr := os.Getenv("PORT")
+122.	if portStr == "" {
+123.		return port
+124.	}
+125.
+126.	portN, err := strconv.Atoi(portStr)
+127.	if err != nil {
+128.		return port
+129.	}
+130.
+131.	return uint16(portN)
+132.}
+133.
+134.func CreateConfig() *ServerConfig {
+135.	godotenv.Load()
+136.	var conf *ServerConfig
+137.
+138.	if configPath := os.Getenv("SERVER_CONFIG_PATH"); configPath != "" {
+139.		conf = fromFile(configPath)
+140.	} else if len(os.Args) >= 2 {
+141.		conf = fromFile(os.Args[1])
+142.	} else {
+143.		conf = defaultConfig()
+144.	}
+145.
+146.	conf.Port = getPort(conf)
+147.
+148.    for _, freq := range *conf.Frequency {
+149.        idx := slices.IndexFunc(*conf.Twitch, func(t TwitchConfig) bool {
+150.            return t.Channel == F
+</code>
+<location>
+150, 34
+
+</location>

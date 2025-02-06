@@ -1,0 +1,236 @@
+<context>
+package args
+
+import (
+	"encoding/json"
+	"github.com/joho/godotenv"
+	"log/slog"
+	"os"
+	"strconv"
+)
+
+func getArgInt(name string, d int) int {
+	out := d
+	if os.Getenv(name) != "" {
+		arg := os.Getenv(name)
+		argInt, err := strconv.Atoi(arg)
+		if err != nil {
+			return out
+		}
+		out = argInt
+	}
+	return out
+}
+
+func getArg(name string, d string) string {
+	out := d
+	if os.Getenv(name) != "" {
+		out = os.Getenv(name)
+	}
+	return out
+}
+
+type TwitchFrequencyConfig struct {
+	FreqWindowSeconds int `json:"freq_window_seconds"`
+	BucketCount       int `json:"bucket_count"`
+	MaxWordCount      int `json:"max_word_count"`
+}
+
+type TwitchServiceType string
+
+const (
+	Service TwitchServiceType = "service"
+	Gateway TwitchServiceType = "gateway"
+	File    TwitchServiceType = "file"
+)
+
+type TwitchGatewayConfig struct {
+	Port int    `json:"port"`
+	Host string `json:"host"`
+}
+
+type TwitchFileConfig struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+}
+
+type TwitchServiceConfig struct{}
+
+type TwitchConfigParam struct {
+	Type    TwitchServiceType    `json:"type"`
+	Service *TwitchServiceConfig `json:"service"`
+	File    *TwitchFileConfig    `json:"file"`
+	Gateway *TwitchGatewayConfig `json:"gateway"`
+}
+type TwitchConfig struct {
+	Channel    string                 `json:"channel"`
+	Params     TwitchConfigParam      `json:"params"`
+	Frequency  *TwitchFrequencyConfig `json:"frequency"`
+	BitStorage bool                   `json:"bit_storage"`
+	Debug      bool                   `json:"debug"`
+}
+
+type ServerConfig struct {
+	Twitch         *[]TwitchConfig `json:"twitch"`
+	BitStoragePath string          `json:"bit_storage_path"`
+	Port           uint16          `json:"port"`
+	Assets         bool            `json:"assets"`
+	Debug          bool            `json:"debug"`
+}
+
+func (s *ServerConfig) Extend(other *ServerConfig) *ServerConfig {
+	if other.Twitch != nil {
+		s.Twitch = other.Twitch
+	}
+	return s
+}
+
+func defaultConfig() *ServerConfig {
+	return &ServerConfig{
+		Twitch:         &[]TwitchConfig{},
+		BitStoragePath: "./bits.json",
+		Assets:         true,
+	}
+}
+
+func fromFile(path string) *ServerConfig {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("unable to read file", "path", path, "error", err)
+		return defaultConfig()
+	}
+	var conf ServerConfig
+	err = json.Unmarshal(contents, &conf)
+	if err != nil {
+		slog.Error("unable to decode json", "path", path, "error", err)
+		return defaultConfig()
+	}
+	return &conf
+}
+
+func getPort(config *ServerConfig) uint16 {
+	var port uint16 = 42069
+	var err error
+
+	if config.Port != 0 {
+		port = config.Port
+	}
+
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		return port
+	}
+
+	portN, err := strconv.Atoi(portStr)
+	if err != nil {
+		return port
+	}
+
+	return uint16(portN)
+}
+
+func CreateConfig() *ServerConfig {
+	godotenv.Load()
+	var conf *ServerConfig
+
+	if configPath := os.Getenv("SERVER_CONFIG_PATH"); configPath != "" {
+		conf = fromFile(configPath)
+	} else if len(os.Args) >= 2 {
+		conf = fromFile(os.Args[1])
+	} else {
+		conf = defaultConfig()
+	}
+
+	conf.Port = getPort(conf)
+
+	return conf
+}
+
+func (a *ServerConfig) Logger() *slog.Logger {
+	return slog.New(slog.NewJSONHandler(os.Stdout, nil))
+}
+package twitch
+
+import (
+	"context"
+	slog "log/slog"
+
+	"theprimeagen.tv/pkg/args"
+	"theprimeagen.tv/pkg/chat"
+	"theprimeagen.tv/pkg/v2/msg"
+	"theprimeagen.tv/pkg/v2/relay"
+)
+
+type Twitch struct {
+    config *args.TwitchConfig
+    twitch *chat.TwitchChat
+}
+
+func NewTwitch(ctx context.Context, config *args.TwitchConfig) *Twitch {
+    ch := chat.NewTwitchChat(ctx, config)
+
+    return &Twitch{
+        twitch: ch,
+    }
+}
+
+func (t *Twitch) Start(r relay.IRelay) {
+    prov, err := chat.ProviderFromConfig(*t.config)
+
+    if err != nil {
+        slog.Error("unable to create provider from config", "config", t.config, "error", err)
+        panic("could not create the provider from config, this should never happen")
+    }
+
+    t.twitch.Start(prov)
+    r.AddInterceptor(t)
+
+    out := make(chan chat.ChatMsg)
+    t.twitch.NewAllMessageFilter(out)
+
+    for cht := range out {
+        r.Push(msg.CreateMsg(msg.TwitchChat, cht))
+    }
+}
+
+func (t *Twitch) Close() {
+    t.twitch.Close()
+}
+
+func (t *Twitch) Filter(msg msg.Msg) bool {
+    // until i hook up a non anon account, i cannot do anything with any
+    // message as a twitch interceptor
+    return false
+}
+
+func (t *Twitch) Act(msg msg.Msg) {
+    _ = msg
+}
+
+func (t *Twitch) Done() bool {
+    return false
+}
+
+</context>
+<code>
+ 1.package main
+ 2.
+ 3.import (
+ 4.	"context"
+ 5.
+ 6.	"theprimeagen.tv/pkg/args"
+ 7.	"theprimeagen.tv/pkg/v2/twitch"
+ 8.)
+ 9.
+10.func main() {
+11.    ctx := context.Background()
+12.    config := args.CreateConfig()
+13.    tConfig := *config.Twitch
+14.    t := twitch.NewTwitch(ctx, &tConfig[1])
+15.
+16.    re
+</code>
+<location>
+16, 7
+
+</location>

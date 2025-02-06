@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+export CUDA_VISIBLE_DEVICES=5
+~/llama.cpp/build/bin/llama-server \
+    --log-file /raid/theprimeagen/llama.logs \
+    -ngl 999 \
+    --threads 8 \
+    --prio 2 \
+    --temp 0 \
+    -np 69 \
+    --port 8085 \
+    --model qwen2.5-coder-32b-instruct-q5_k_m-00001-of-00003.gguf
+

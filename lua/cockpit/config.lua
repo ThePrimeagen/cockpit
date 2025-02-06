@@ -15,7 +15,7 @@ function M.default()
     return {
         log_level = levels.DEBUG,
         log_file_path = "/tmp/cockpit",
-        save_queries = false,
+        save_queries = true,
         save_queries_path = "/tmp/saved",
         language_import_filter = {
             go = {

@@ -1,0 +1,155 @@
+<context>
+
+</context>
+<code>
+  1.package args
+  2.
+  3.import (
+  4.	"encoding/json"
+  5.	"github.com/joho/godotenv"
+  6.	"log/slog"
+  7.	"os"
+  8.	"strconv"
+  9.)
+ 10.
+ 11.func getArgInt(name string, d int) int {
+ 12.	out := d
+ 13.	if os.Getenv(name) != "" {
+ 14.		arg := os.Getenv(name)
+ 15.		argInt, err := strconv.Atoi(arg)
+ 16.		if err != nil {
+ 17.			return out
+ 18.		}
+ 19.		out = argInt
+ 20.	}
+ 21.	return out
+ 22.}
+ 23.
+ 24.func getArg(name string, d string) string {
+ 25.	out := d
+ 26.	if os.Getenv(name) != "" {
+ 27.		out = os.Getenv(name)
+ 28.	}
+ 29.	return out
+ 30.}
+ 31.
+ 32.type TwitchFrequencyConfig struct {
+ 33.	FreqWindowSeconds int `json:"freq_window_seconds"`
+ 34.	BucketCount       int `json:"bucket_count"`
+ 35.	MaxWordCount      int `json:"max_word_count"`
+ 36.}
+ 37.
+ 38.type TwitchServiceType string
+ 39.
+ 40.const (
+ 41.	Service TwitchServiceType = "service"
+ 42.	Gateway TwitchServiceType = "gateway"
+ 43.	File    TwitchServiceType = "file"
+ 44.)
+ 45.
+ 46.type TwitchGatewayConfig struct {
+ 47.	Port int    `json:"port"`
+ 48.	Host string `json:"host"`
+ 49.}
+ 50.
+ 51.type TwitchFileConfig struct {
+ 52.	Path    string `json:"path"`
+ 53.	Content string `json:"content"`
+ 54.}
+ 55.
+ 56.type TwitchServiceConfig struct{}
+ 57.
+ 58.type TwitchConfigParam struct {
+ 59.	Type    TwitchServiceType    `json:"type"`
+ 60.	Service *TwitchServiceConfig `json:"service"`
+ 61.	File    *TwitchFileConfig    `json:"file"`
+ 62.	Gateway *TwitchGatewayConfig `json:"gateway"`
+ 63.}
+ 64.type TwitchConfig struct {
+ 65.	Channel string            `json:"channel"`
+ 66.	Params  TwitchConfigParam `json:"params"`
+ 67.	Debug   bool              `json:"debug"`
+ 68.}
+ 69.
+ 70.type ServerConfig struct {
+ 71.	Twitch         *[]TwitchConfig          `json:"twitch"`
+ 72.	BitStoragePath string                  `json:"bit_storage_path"`
+ 73.	BitStorage     bool                    `json:"bit_storage"`
+ 74.	Frequency      *[]TwitchFrequencyConfig `json:"frequency"`
+ 75.	Port           uint16                  `json:"port"`
+ 76.	Assets         bool                    `json:"assets"`
+ 77.	Debug          bool                    `json:"debug"`
+ 78.}
+ 79.
+ 80.func (s *ServerConfig) Extend(other *ServerConfig) *ServerConfig {
+ 81.	if other.Twitch != nil {
+ 82.		s.Twitch = other.Twitch
+ 83.	}
+ 84.	return s
+ 85.}
+ 86.
+ 87.func defaultConfig() *ServerConfig {
+ 88.	return &ServerConfig{
+ 89.		Twitch:         &[]TwitchConfig{},
+ 90.		Frequency:      &[]TwitchFrequencyConfig{},
+ 91.		BitStoragePath: "./bits.json",
+ 92.		Assets:         true,
+ 93.	}
+ 94.}
+ 95.
+ 96.func fromFile(path string) *ServerConfig {
+ 97.	contents, err := os.ReadFile(path)
+ 98.	if err != nil {
+ 99.		slog.Error("unable to read file", "path", path, "error", err)
+100.		return defaultConfig()
+101.	}
+102.	var conf ServerConfig
+103.	err = json.Unmarshal(contents, &conf)
+104.	if err != nil {
+105.		slog.Error("unable to decode json", "path", path, "error", err)
+106.		return defaultConfig()
+107.	}
+108.	return &conf
+109.}
+110.
+111.func getPort(config *ServerConfig) uint16 {
+112.	var port uint16 = 42069
+113.	var err error
+114.
+115.	if config.Port != 0 {
+116.		port = config.Port
+117.	}
+118.
+119.	portStr := os.Getenv("PORT")
+120.	if portStr == "" {
+121.		return port
+122.	}
+123.
+124.	portN, err := strconv.Atoi(portStr)
+125.	if err != nil {
+126.		return port
+127.	}
+128.
+129.	return uint16(portN)
+130.}
+131.
+132.func CreateConfig() *ServerConfig {
+133.	godotenv.Load()
+134.	var conf *ServerConfig
+135.
+136.	if configPath := os.Getenv("SERVER_CONFIG_PATH"); configPath != "" {
+137.		conf = fromFile(configPath)
+138.	} else if len(os.Args) >= 2 {
+139.		conf = fromFile(os.Args[1])
+140.	} else {
+141.		conf = defaultConfig()
+142.	}
+143.
+144.	conf.Port = getPort(conf)
+145.
+146.    for _, freq :
+</code>
+<location>
+146, 18
+
+</location>
